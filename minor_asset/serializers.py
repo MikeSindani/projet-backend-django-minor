@@ -4,4 +4,4 @@ from .models import CategorieMachine
 class CategorieMachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = CategorieMachine
-        fields = ['nom', 'description']
+        fields = ["id",'nom', 'description', 'date_creation', 'time_created', 'date_modification', 'time_modified'] 
