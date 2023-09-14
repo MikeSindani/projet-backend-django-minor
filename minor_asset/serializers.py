@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import CategorieMachine
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class CategorieMachineSerializer(serializers.ModelSerializer):
     class Meta:

@@ -20,7 +20,7 @@ class UserAgent(AbstractUser):
   USERNAME_FIELD = 'username'
   REQUIRED_FIELDS = ['username','password']
   def __str__(self):
-      return "{} - {} : {}".format(self.username,self.email)
+      return "{} - {}".format(self.username,self.email)
 
   groups = models.ManyToManyField(
         Group,

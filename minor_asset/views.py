@@ -9,6 +9,9 @@ from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from .filter import CategorieMachineFilter
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication,TokenAuthentication
+from rest_framework import generics, authentication
+from rest_framework import permissions
 
 # Create your views here.
 
@@ -36,6 +39,8 @@ class CategorieMachineViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = CategorieMachineFilter # Remplacez 'nom' par le nom de votre champ
     pagination_class = CustomPagination
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
             serializer = self.get_serializer(data=request.data)
@@ -59,4 +64,4 @@ class CategorieMachineViewSet(viewsets.ModelViewSet):
             #instance.id_UserAgent= request.user
             instance.save()
             instance.delete()
-            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_200_OK)

@@ -17,10 +17,14 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from django.urls  import include
+from rest_framework.authtoken.views import obtain_auth_token
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/asset/', include('minor_asset.urls')),
+    path('api/auth/',obtain_auth_token),
+    path('api/',include('users.urls')),
 ]
 
 
