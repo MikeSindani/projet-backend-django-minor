@@ -8,7 +8,6 @@ class CategorieMachine(models.Model):
     # Les attributs du modèle
     nom = models.CharField(max_length=50,null=True, blank=True)
     description = models.TextField(null=True, blank=True)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE,null=True, blank=True)
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -26,26 +25,25 @@ class Machine(models.Model):
     modele = models.CharField(max_length=250)
     annee_fabrique = models.IntegerField()
 
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
     categorie = models.ForeignKey(CategorieMachine, on_delete=models.CASCADE)
-
+    
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.nom} ({self.marque} {self.modele} {self.annee})"
+        return f"{self.nom} ({self.marque} {self.modele} )"
 
 
 
 class Adresse(models.Model):
     # Les attributs du modèle
-    rue = models.CharField(max_length=100)
-    numero = models.IntegerField()
-    ville = models.CharField(max_length=50)
-    pays = models.CharField(max_length=50)
-    zip_code = models.CharField(max_length=10)
+    rue = models.CharField(max_length=100,null=True, blank=True)
+    numero = models.IntegerField( null=True, blank=True)
+    ville = models.CharField(max_length=50 , null=True, blank=True)
+    pays = models.CharField(max_length=50, null=True, blank=True)
+    zip_code = models.CharField(max_length=10, null=True, blank=True)
 
     # Une méthode pour afficher l'adresse sous forme de chaîne de caractères
     def __str__(self):
@@ -63,10 +61,13 @@ class Agent(models.Model):
     phone1 = models.CharField(max_length=10)
     phone2 = models.CharField(max_length=10, blank=True)
     email = models.EmailField(null=True, blank=True)
-
-     # L'attribut pour lier le modèle adresse
-    adresse = models.OneToOneField(Adresse, on_delete=models.CASCADE)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    # Les attributs du modèle
+    rue = models.CharField(max_length=100,null=True, blank=True)
+    numero = models.IntegerField( null=True, blank=True)
+    ville = models.CharField(max_length=50 , null=True, blank=True)
+    pays = models.CharField(max_length=50, null=True, blank=True)
+    zip_code = models.CharField(max_length=10,null=True, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -85,9 +86,13 @@ class Client(models.Model):
     phone2 = models.CharField(max_length=10, blank=True)
     email = models.EmailField()
     asset_code = models.ForeignKey("Machine", on_delete=models.CASCADE) #asset code 
-     # L'attribut pour lier le modèle adresse
-    adresse = models.OneToOneField(Adresse, on_delete=models.CASCADE)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE,blank=True)
+   
+    # Les attributs du modèle
+    rue = models.CharField(max_length=100,null=True, blank=True)
+    numero = models.IntegerField( null=True, blank=True)
+    ville = models.CharField(max_length=50 , null=True, blank=True)
+    pays = models.CharField(max_length=50, null=True, blank=True)
+    zip_code = models.CharField(max_length=10, null=True, blank=True)
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -109,7 +114,7 @@ class Team(models.Model):
     team_type = models.CharField(max_length=20, choices=TYPE)
     supervisor = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='supervised_teams')
     assistant = models.ForeignKey(Agent, on_delete=models.CASCADE ,related_name='assisted_teams')
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -118,8 +123,17 @@ class Team(models.Model):
 
 class Provider(models.Model):
     name = models.CharField(max_length=100)
-    address = models.ForeignKey(Adresse, on_delete=models.CASCADE)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    phone1 = models.CharField(max_length=10)
+    phone2 = models.CharField(max_length=10, blank=True)
+    web_site = models.CharField(max_length=250, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    # Les attributs du modèle
+    rue = models.CharField(max_length=100,null=True, blank=True)
+    numero = models.IntegerField( null=True, blank=True)
+    ville = models.CharField(max_length=50 , null=True, blank=True)
+    pays = models.CharField(max_length=50, null=True, blank=True)
+    zip_code = models.CharField(max_length=10, null=True, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -129,6 +143,8 @@ class Provider(models.Model):
 
 class CategoryInventory(models.Model):
     name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
+    
 
 
 class Inventory(models.Model):
@@ -142,7 +158,7 @@ class Inventory(models.Model):
     id_category = models.ForeignKey(CategoryInventory, on_delete=models.CASCADE, blank=True)
     image = models.ImageField(upload_to='articles/', null=True, blank=True)
     code_bar = models.CharField(max_length=255, null=True, blank=True)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     description = models.TextField(blank=True)
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -154,7 +170,7 @@ class Inventory(models.Model):
 class InventoryInto(models.Model):
     quantity = models.IntegerField(null=True, blank=True)
     id_article = models.ForeignKey(Inventory, on_delete=models.CASCADE, blank=True)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -168,7 +184,7 @@ class InventoryOut(models.Model):
     id_agent = models.ForeignKey(Agent, on_delete=models.CASCADE, blank=True)
     id_team = models.ForeignKey(Team, on_delete=models.CASCADE, blank=True)
     # UserAgent doit etre partout
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -189,7 +205,7 @@ class PlanifierRepair(models.Model):
     target_running_date = models.DateTimeField() 
     priorite = models.CharField(max_length=10, choices=PRIORITE_CHOICES, blank=True)
     comments = models.TextField(null=True, blank=True)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -205,7 +221,7 @@ class PlanifierMaintenance(models.Model):
     
     id_machine = models.ForeignKey('Machine', on_delete=models.CASCADE)
     priority = models.CharField(max_length=10, choices=PRIORITE_CHOICES)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -214,7 +230,7 @@ class PlanifierMaintenance(models.Model):
 
 class PlanifierTeam(models.Model):
     id_team = models.ForeignKey('Team', on_delete=models.CASCADE)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -228,7 +244,7 @@ class Remind(models.Model):
     id_planifierTeam = models.ForeignKey(PlanifierTeam, on_delete=models.CASCADE,null=True, blank=True)
     datetime_remind = models.DateTimeField(null=True, blank=True)
     day = models.CharField(max_length=1,null=True, blank=True) 
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -248,7 +264,7 @@ class CategoriePanne(models.Model):
     nom = models.CharField(max_length=100)
     # Ce champ contient la description de la catégorie
     description = models.TextField(blank=True)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
      # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -268,7 +284,7 @@ class CodePanne(models.Model):
     comment = models.TextField(blank=True)
     # Ce champ contient la clé étrangère vers la catégorie de panne
     id_categorie_panne = models.ForeignKey(CategoriePanne, on_delete=models.CASCADE,blank=True)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
      # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -283,7 +299,7 @@ class WorkOrder(models.Model):
     id_machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
     id_inventaire = models.ForeignKey(Inventory, on_delete=models.CASCADE)
     id_code_panne = models.ForeignKey(CodePanne, on_delete=models.CASCADE)
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
      # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -351,7 +367,7 @@ class Diagnostics(models.Model):
     end_diag_time = models.TimeField()
     # Ce champ contient la date de fin du diagnostic
     end_diag_date = models.DateField()
-    id_UserAgent = models.ForeignKey(UserAgent, on_delete=models.CASCADE, blank=True)
+    
      # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)

@@ -1,17 +1,19 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import CategorieMachine
-from .serializers import CategorieMachineSerializer
+from .models import *
+from .serializers import *
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
-from .filter import CategorieMachineFilter
+from .filter import *
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication,TokenAuthentication
 from rest_framework import generics, authentication
 from rest_framework import permissions
+from rest_framework.views import APIView
+from django.utils import timezone
 
 # Create your views here.
 
@@ -36,6 +38,8 @@ class CustomPagination(PageNumberPagination):
 class CategorieMachineViewSet(viewsets.ModelViewSet):
     queryset = CategorieMachine.objects.all()
     serializer_class = CategorieMachineSerializer
+
+    # a ajouter manuelement partout 
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = CategorieMachineFilter # Remplacez 'nom' par le nom de votre champ
     pagination_class = CustomPagination
@@ -65,3 +69,168 @@ class CategorieMachineViewSet(viewsets.ModelViewSet):
             instance.save()
             instance.delete()
             return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_200_OK)
+
+class MachineViewSet(viewsets.ModelViewSet):
+    queryset = Machine.objects.all()
+    serializer_class = MachineSerializerTwo
+
+    serializer_class_post = MachineSerializerTwo
+    serializer_class_put = MachineSerializerTwo
+
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = MachineFilter # Remplacez 'nom' par le nom de votre champ
+    # a ajouter manuelement partout
+    pagination_class = CustomPagination
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return self.serializer_class_post
+        elif self.request.method in ['PUT', 'PATCH']:
+            return self.serializer_class_put
+        return self.serializer_class
+
+    def create(self, request, *args, **kwargs):
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_200_OK)
+
+class AgentViewSet(viewsets.ModelViewSet):
+    queryset = Agent.objects.all()
+    serializer_class = AgentSerializer
+
+    pagination_class = CustomPagination
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_200_OK)
+
+class ClientViewSet(viewsets.ModelViewSet):
+    queryset = Client.objects.all()
+    serializer_class = ClientSerializer
+    filterset_class = ClientFilter
+
+    pagination_class = CustomPagination
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_200_OK)
+
+class ProviderViewSet(viewsets.ModelViewSet):
+    queryset = Provider.objects.all()
+    serializer_class = ProviderSerializer
+    filterset_class = ProviderFilter
+    pagination_class = CustomPagination
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_200_OK)
+
+'''
+class MacintView(APIView):
+    def get(self, request):
+        current_date = timezone.now().date()
+        total_categorieMachine = CategorieMachine.objects.filter(date=current_date).count()
+        total_machine = Machine.objects.filter(date=current_date).count()
+        return Response({ "total": total_machine, "current_date" : current_date})
+class Cat(APIView):
+    def get(self, request):
+        current_date = timezone.now().date()
+        total_categorieMachine = CategorieMachine.objects.filter(date=current_date).count()
+        total_machine = Machine.objects.filter(date=current_date).count()
+        return Response({"total": total_categorieMachine , "current_date" : current_date })
+'''
+class MachineCountView(APIView):
+    def get(self, request):
+        total_machine = Machine.objects.all().count()
+        return Response({ "total": total_machine})
+class CategorieMachineCountView(APIView):
+    def get(self, request):
+        total_categorieMachine = CategorieMachine.objects.all().count()
+        return Response({"total": total_categorieMachine })
