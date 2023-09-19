@@ -129,7 +129,7 @@ class Provider(models.Model):
     email = models.EmailField(null=True, blank=True)
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
-    numero = models.IntegerField( null=True, blank=True)
+    numero = models.IntegerField()
     ville = models.CharField(max_length=50 , null=True, blank=True)
     pays = models.CharField(max_length=50, null=True, blank=True)
     zip_code = models.CharField(max_length=10, null=True, blank=True)
@@ -140,11 +140,26 @@ class Provider(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
-
+class Location(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    time_created = models.TimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    time_modified = models.TimeField(auto_now=True)
+    
 class CategoryInventory(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
+    id_location = models.ForeignKey(Location, on_delete=models.CASCADE, blank=True,null=True)
+    date_creation = models.DateTimeField(auto_now_add=True,null=True)
+    time_created = models.TimeField(auto_now_add=True,null=True)
+    date_modification = models.DateTimeField(auto_now=True,null=True)
+    time_modified = models.TimeField(auto_now=True,null=True)
     
+'''
+cree un model viewset +son sterialiser + son url router + son ajout dans la page admin django 
+'''
 
 
 class Inventory(models.Model):
@@ -153,7 +168,7 @@ class Inventory(models.Model):
     capacity = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
     price = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
     currency = models.CharField(max_length=20,null=True, blank=True)
-    location = models.CharField(max_length=100,null=True, blank=True)
+    id_location = models.ForeignKey(Location, on_delete=models.CASCADE, blank=True,null=True)
     id_provider = models.ForeignKey(Provider, on_delete=models.CASCADE, blank=True)
     id_category = models.ForeignKey(CategoryInventory, on_delete=models.CASCADE, blank=True)
     image = models.ImageField(upload_to='articles/', null=True, blank=True)

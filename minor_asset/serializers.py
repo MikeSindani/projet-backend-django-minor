@@ -41,12 +41,24 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         fields = ['name', 'team_type', 'supervisor', 'assistant', 'date_creation', 'time_created', 'date_modification', 'time_modified']
-
+        
 class ProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Provider
         fields = '__all__'
 
+
 class MachineCountSerializer(serializers.Serializer):
     total_categorieMachine = serializers.IntegerField()
     total_machine = serializers.IntegerField()
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ['id','name', 'description', 'date_creation', 'time_created', 'date_modification', 'time_modified']
+
+class CategoryInventorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategoryInventory
+        fields = '__all__'

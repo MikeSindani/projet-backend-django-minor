@@ -1,5 +1,6 @@
 from django_filters.rest_framework import FilterSet
 from .models import *
+import django_filters
    
 class CategorieMachineFilter(FilterSet):
        class Meta:
@@ -17,4 +18,4 @@ class ClientFilter(FilterSet):
 class ProviderFilter(FilterSet):
     class Meta:
         model = Provider
-        fields = '__all__'
+        fields = ["name",]
