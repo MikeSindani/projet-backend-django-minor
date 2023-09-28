@@ -31,13 +31,13 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',
     'users',
     'minor_asset',
     'rest_framework',
@@ -60,10 +60,12 @@ MIDDLEWARE = [
 
 ]
 
+
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
     "https://example.com",
     "https://sub.example.com",
-    "http://localhost:3000",
+    
 ]
 
 ROOT_URLCONF = 'PROJET_DJANGO_MINOR.urls'
@@ -153,3 +155,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# auth app 
+AUTH_USER_MODEL = 'users.User'

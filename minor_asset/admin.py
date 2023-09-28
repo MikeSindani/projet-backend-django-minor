@@ -8,4 +8,7 @@ admin.site.register(Client)
 admin.site.register(Provider)
 admin.site.register(Location)
 admin.site.register(CategoryInventory)
+admin.site.register(Inventory)
+admin.site.register(InventoryInto)
+admin.site.register(Team)
 # Register your models here.

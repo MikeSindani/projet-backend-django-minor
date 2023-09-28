@@ -1,5 +1,5 @@
 from django.db import models
-from users.models import UserAgent
+from users.models import *
 import random
 import string
 
@@ -48,8 +48,24 @@ class Adresse(models.Model):
     # Une méthode pour afficher l'adresse sous forme de chaîne de caractères
     def __str__(self):
         return f"{self.rue} {self.numero}, {self.ville}, {self.pays}"
+#cree un model viewset + son sterialiser + son url router + son ajout dans la page admin django
 
-
+class Team(models.Model):
+    TYPE = (
+        ('MAINTENANCE', 'MAINTENANCE'),
+        ('INVENTAIRE', 'INVENTAIRE'),
+        ('OTHERS', 'OTHERS'),
+        # Add all the other currencies here
+    )
+    name = models.CharField(max_length=100 ,null=True, blank=True)
+    team_type = models.CharField(max_length=20, choices=TYPE)
+    description = models.TextField(blank=True)
+    
+    # date et time pour creat et modified 
+    date_creation = models.DateTimeField(auto_now_add=True)
+    time_created = models.TimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    time_modified = models.TimeField(auto_now=True)
 
 class Agent(models.Model):
     # Les attributs du modèle
@@ -64,10 +80,16 @@ class Agent(models.Model):
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
     numero = models.IntegerField( null=True, blank=True)
+    quarter = models.CharField(max_length=150 , null=True, blank=True)
+    commune = models.CharField(max_length=150 , null=True, blank=True)
     ville = models.CharField(max_length=50 , null=True, blank=True)
     pays = models.CharField(max_length=50, null=True, blank=True)
     zip_code = models.CharField(max_length=10,null=True, blank=True)
-    
+    # id de l'equipe 
+    #team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='Agent')
+    isSupervisor = models.BooleanField(default=False)
+    isAssistant = models.BooleanField(default=False)
+    isAgent = models.BooleanField(default=True)
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -90,6 +112,8 @@ class Client(models.Model):
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
     numero = models.IntegerField( null=True, blank=True)
+    quarter = models.CharField(max_length=150 , null=True, blank=True)
+    commune = models.CharField(max_length=150 , null=True, blank=True)
     ville = models.CharField(max_length=50 , null=True, blank=True)
     pays = models.CharField(max_length=50, null=True, blank=True)
     zip_code = models.CharField(max_length=10, null=True, blank=True)
@@ -103,23 +127,6 @@ class Client(models.Model):
     def __str__(self):
         return f"{self.nom} {self.prenom} {self.postnom}"
 
-class Team(models.Model):
-    TYPE = (
-        ('MAINTENANCE', 'MAINTENANCE'),
-        ('INVENTAIRE', 'INVENTAIRE'),
-        ('OTHERS', 'OTHERS'),
-        # Add all the other currencies here
-    )
-    name = models.CharField(max_length=100 ,null=True, blank=True)
-    team_type = models.CharField(max_length=20, choices=TYPE)
-    supervisor = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='supervised_teams')
-    assistant = models.ForeignKey(Agent, on_delete=models.CASCADE ,related_name='assisted_teams')
-    
-    # date et time pour creat et modified 
-    date_creation = models.DateTimeField(auto_now_add=True)
-    time_created = models.TimeField(auto_now_add=True)
-    date_modification = models.DateTimeField(auto_now=True)
-    time_modified = models.TimeField(auto_now=True)
 
 class Provider(models.Model):
     name = models.CharField(max_length=100)
@@ -130,6 +137,8 @@ class Provider(models.Model):
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
     numero = models.IntegerField()
+    quarter = models.CharField(max_length=150 , null=True, blank=True)
+    commune = models.CharField(max_length=150 , null=True, blank=True)
     ville = models.CharField(max_length=50 , null=True, blank=True)
     pays = models.CharField(max_length=50, null=True, blank=True)
     zip_code = models.CharField(max_length=10, null=True, blank=True)
@@ -140,6 +149,9 @@ class Provider(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+    def __str__(self):
+        return self.name 
+
 class Location(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
@@ -147,18 +159,23 @@ class Location(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
-    
+    def __str__(self):
+        return self.name   
 class CategoryInventory(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
     id_location = models.ForeignKey(Location, on_delete=models.CASCADE, blank=True,null=True)
+
     date_creation = models.DateTimeField(auto_now_add=True,null=True)
     time_created = models.TimeField(auto_now_add=True,null=True)
     date_modification = models.DateTimeField(auto_now=True,null=True)
     time_modified = models.TimeField(auto_now=True,null=True)
+
+    def __str__(self):
+        return self.name 
     
 '''
-cree un model viewset +son sterialiser + son url router + son ajout dans la page admin django 
+cree un model viewset + son sterialiser + son url router + son ajout dans la page admin django.
 '''
 
 
@@ -173,24 +190,31 @@ class Inventory(models.Model):
     id_category = models.ForeignKey(CategoryInventory, on_delete=models.CASCADE, blank=True)
     image = models.ImageField(upload_to='articles/', null=True, blank=True)
     code_bar = models.CharField(max_length=255, null=True, blank=True)
-    
     description = models.TextField(blank=True)
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True) 
     time_modified = models.TimeField(auto_now=True)
+    def __str__(self):
+        return self.designation
 
 
 class InventoryInto(models.Model):
     quantity = models.IntegerField(null=True, blank=True)
     id_article = models.ForeignKey(Inventory, on_delete=models.CASCADE, blank=True)
+    userOrNew = models.CharField(max_length=20,null=True, blank=True)
+    unit = models.CharField(max_length=20,null=True, blank=True)
+    capacity = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
+    description = models.TextField(blank=True)
     
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+    
+
 
 
 class InventoryOut(models.Model):

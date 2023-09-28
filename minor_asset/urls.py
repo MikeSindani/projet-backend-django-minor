@@ -13,11 +13,16 @@ router.register(r'clients', ClientViewSet)
 router.register(r'providers', ProviderViewSet)
 router.register(r'locations', LocationViewSet)
 router.register(r'category-inventory', CategoryInventoryViewSet)
+router.register(r'inventory', InventoryViewSet)
+router.register(r'inventory-into', InventoryIntoViewSet, basename='inventory-into')
+router.register(r'teams', TeamViewSet)
 
 
 urlpatterns = [
     path('machine-count/', MachineCountView.as_view(), name='machine-count'),
     path('categorie-machine-count/', CategorieMachineCountView.as_view(), name='machine-categorie-count'),
     path('provider_count/', ProviderCountView.as_view(), name='provider_count'),
+    path('inventory_count/', InventoryCountView.as_view(), name='inventory_count'),
+    path('register/', RegisterAPI.as_view(), name='register'),
     path('', include(router.urls)),
 ]
