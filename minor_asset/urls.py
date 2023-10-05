@@ -15,7 +15,9 @@ router.register(r'locations', LocationViewSet)
 router.register(r'category-inventory', CategoryInventoryViewSet)
 router.register(r'inventory', InventoryViewSet)
 router.register(r'inventory-into', InventoryIntoViewSet, basename='inventory-into')
+router.register(r'inventory-out', InventoryOutViewSet)
 router.register(r'teams', TeamViewSet)
+
 
 
 urlpatterns = [
@@ -23,6 +25,8 @@ urlpatterns = [
     path('categorie-machine-count/', CategorieMachineCountView.as_view(), name='machine-categorie-count'),
     path('provider_count/', ProviderCountView.as_view(), name='provider_count'),
     path('inventory_count/', InventoryCountView.as_view(), name='inventory_count'),
+    path('inventory_out_count/', InventoryOutCountView.as_view(), name='inventory_out_count'),
+    path('inventory_in_count/', InventoryIntoCountView.as_view(), name='inventory_in_count'),
     path('register/', RegisterAPI.as_view(), name='register'),
     path('', include(router.urls)),
 ]

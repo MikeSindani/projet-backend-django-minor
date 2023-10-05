@@ -86,7 +86,9 @@ class Agent(models.Model):
     pays = models.CharField(max_length=50, null=True, blank=True)
     zip_code = models.CharField(max_length=10,null=True, blank=True)
     # id de l'equipe 
-    #team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='Agent')
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='User_save_agent')
+
     isSupervisor = models.BooleanField(default=False)
     isAssistant = models.BooleanField(default=False)
     isAgent = models.BooleanField(default=True)
@@ -206,6 +208,7 @@ class InventoryInto(models.Model):
     userOrNew = models.CharField(max_length=20,null=True, blank=True)
     unit = models.CharField(max_length=20,null=True, blank=True)
     capacity = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     description = models.TextField(blank=True)
     
     # date et time pour creat et modified 
@@ -222,6 +225,7 @@ class InventoryOut(models.Model):
     id_article = models.ForeignKey(Inventory, on_delete=models.CASCADE)
     id_agent = models.ForeignKey(Agent, on_delete=models.CASCADE, blank=True)
     id_team = models.ForeignKey(Team, on_delete=models.CASCADE, blank=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     # UserAgent doit etre partout
     
     # date et time pour creat et modified 
@@ -293,9 +297,7 @@ class Remind(models.Model):
 
 def generate_work_order():
     return ''.join(random.choices(string.digits, k=6))
-
-
-
++
 
 # Ce modèle représente une catégorie de panne
 class CategoriePanne(models.Model):

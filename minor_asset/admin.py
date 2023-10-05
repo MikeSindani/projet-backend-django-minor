@@ -10,5 +10,6 @@ admin.site.register(Location)
 admin.site.register(CategoryInventory)
 admin.site.register(Inventory)
 admin.site.register(InventoryInto)
+admin.site.register(InventoryOut)
 admin.site.register(Team)
 # Register your models here.
