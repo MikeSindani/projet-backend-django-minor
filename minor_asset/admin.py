@@ -12,4 +12,8 @@ admin.site.register(Inventory)
 admin.site.register(InventoryInto)
 admin.site.register(InventoryOut)
 admin.site.register(Team)
+admin.site.register(CategoriePanne)
+admin.site.register(CodePanne)
+admin.site.register(WorkOrder)
+admin.site.register(Diagnostics)
 # Register your models here.

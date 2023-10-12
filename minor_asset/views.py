@@ -16,6 +16,8 @@ from rest_framework.views import APIView
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import get_user_model
+from datetime import timedelta
+from datetime import datetime
 
 User = get_user_model()
 
@@ -94,7 +96,7 @@ class CategorieMachineCountView(APIView):
         return Response({"total": total_categorieMachine })
 class MachineViewSet(viewsets.ModelViewSet):
     queryset = Machine.objects.all()
-    serializer_class = MachineSerializerTwo
+    serializer_class = MachineSerializer
 
     serializer_class_post = MachineSerializerTwo
     serializer_class_put = MachineSerializerTwo
@@ -521,6 +523,9 @@ class InventoryIntoViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
 
         data = serializer.data
+        
+        print(data)
+        print(type(data))
         total_data = queryset.count()  # Get the total number of data
 
         response_data = {
@@ -683,6 +688,10 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
         total_data = self.queryset.count()  # Get the total number of data
         print("*"*100)
         print(total_data)
+        inventory_out = InventoryOut.objects.all()
+        if inventory_out.quantity > queryset.quantity:
+            return Response({"message": "InventoryOut quantity is greater than InventoryInto quantity"})
+
         response_data = {
             "status": "success",
             "data": data,
@@ -696,6 +705,7 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
 
         data = serializer.data
+       
         total_data = queryset.count()  # Get the total number of data
         
         response_data = {
@@ -739,6 +749,7 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
 
 
 class TeamViewSet(viewsets.ModelViewSet):
+
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
@@ -798,3 +809,275 @@ class TeamViewSet(viewsets.ModelViewSet):
             instance.save()
             instance.delete()
             return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+class CodePanneViewSet(viewsets.ModelViewSet):
+    queryset = CodePanne.objects.all()
+    serializer_class = CodePanneSerializer
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        total_data = Provider.objects.all().count()  # Get the total number of data
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        data = serializer.data
+        total_data = queryset.count()  # Get the total number of data
+        
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+            print(request.data)
+            print(type(request.data))
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+    
+
+class CategoriePanneViewSet(viewsets.ModelViewSet):
+    queryset = CategoriePanne.objects.all()
+    serializer_class = CategoriePanneSerializer
+
+class WorkOrderViewSet(viewsets.ModelViewSet):
+    queryset = WorkOrder.objects.all()
+    serializer_class = WorkOrderSerializer
+    serializer_class_post = WorkOrderSerializerTwo
+    serializer_class_put = WorkOrderSerializerTwo
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    def get_serializer_class(self):
+        print("chose sterialiser")
+        if self.request.method == 'POST':
+            print("chose sterialiser post")
+            return self.serializer_class_post
+        elif self.request.method in ['PUT', 'PATCH']:
+            print("chose sterialiser put and patch")
+            return self.serializer_class_put
+        return self.serializer_class
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        total_data = self.queryset.count()  # Get the total number of data
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    def list(self, request, *args, **kwargs):
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+
+            data = serializer.data
+            total_data = queryset.count()  # Get the total number of data
+            
+            response_data = {
+                "status": "success",
+                "data": data,
+                "count": total_data,
+                "message": "Data retrieved successfully"
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+                print(request.data)
+                print(type(request.data))
+                serializer = self.get_serializer(data=request.data)
+                if serializer.is_valid():
+                    serializer.save()#id_UserAgent=request.user)
+                    message = f"Work Order(WO) #{serializer.data['work_order']} added successfully"
+                    return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
+                else:
+                    return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+                instance = self.get_object()
+                serializer = self.get_serializer(instance, data=request.data, partial=True)
+                if serializer.is_valid():
+                    serializer.save()#id_UserAgent=request.user)
+                    return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+class WorkOrderCurrentCountView(APIView):
+    def get(self, request):
+        current_date = timezone.now().date()
+        total = WorkOrder.objects.filter(date_creation__icontains=current_date).count() or InventoryOut.objects.filter(date_modification=current_date).count() 
+        return Response({ "count": total,"date":current_date})
+        
+class WorkOrderWeekCountView(APIView):
+    def get(self, request):
+        # Get the current date
+        now = timezone.now()
+        # Calculate the start of the week (Monday)
+        start_week = now - timedelta(days=now.weekday())
+        # Calculate the end of the week (Sunday)
+        end_week = start_week + timedelta(days=6)
+        # Query the database
+        total = WorkOrder.objects.filter(date_creation__range=[start_week, end_week]).count()
+        return Response({ "count": total,"date":"this week"})
+
+
+
+class WorkOrderMounthCountView(APIView):
+    def get(self, request):
+        # Get the current date
+        # Obtenez la date du début du mois en cours
+        start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # Obtenez le nombre d'éléments pendant le mois en cours
+        total = WorkOrder.objects.filter(date_creation__gte=start_of_month).count()
+        return Response({ "count": total,"date":"this month"})
+
+
+class DiagnosticsViewSet(viewsets.ModelViewSet):
+    queryset = Diagnostics.objects.all()
+    serializer_class = DiagnosticsSerializer
+   
+    serializer_class_post = DiagnosticsSerializerTwo
+    serializer_class_put = DiagnosticsSerializerTwo
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    def get_serializer_class(self):
+        print("chose sterialiser")
+        if self.request.method == 'POST':
+            print("chose sterialiser post")
+            return self.serializer_class_post
+        elif self.request.method in ['PUT', 'PATCH']:
+            print("chose sterialiser put and patch")
+            return self.serializer_class_put
+        return self.serializer_class
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        total_data = Provider.objects.all().count()  # Get the total number of data
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        data = serializer.data
+        total_data = queryset.count()  # Get the total number of data
+        
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+            print(request.data)
+            print(type(request.data))
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()#id_UserAgent=request.user)
+                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+class DiagnosticsCurrentCountView(APIView):
+    def get(self, request):
+        current_date = timezone.now().date()
+        total = Diagnostics.objects.filter(date_creation__icontains=current_date).count() or InventoryOut.objects.filter(date_modification=current_date).count() 
+        return Response({ "count": total,"date":current_date})
+
+class DiagnosticsWeekCountView(APIView):
+    def get(self, request):
+        # Get the current date
+        now = timezone.now()
+        # Calculate the start of the week (Monday)
+        start_week = now - timedelta(days=now.weekday())
+        # Calculate the end of the week (Sunday)
+        end_week = start_week + timedelta(days=6)
+        # Query the database
+        total = Diagnostics.objects.filter(date_creation__range=[start_week, end_week]).count()
+        return Response({ "count": total,"date":"this week"})
+
+class DiagnosticsMounthCountView(APIView):
+    def get(self, request):
+        # Get the current date
+        # Obtenez la date du début du mois en cours
+        start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # Obtenez le nombre d'éléments pendant le mois en cours
+        total = Diagnostics.objects.filter(date_creation__gte=start_of_month).count()
+        return Response({ "count": total,"date":"this month"})
