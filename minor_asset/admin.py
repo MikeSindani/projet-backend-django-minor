@@ -16,4 +16,5 @@ admin.site.register(CategoriePanne)
 admin.site.register(CodePanne)
 admin.site.register(WorkOrder)
 admin.site.register(Diagnostics)
+admin.site.register(TrackingPieces)
 # Register your models here.

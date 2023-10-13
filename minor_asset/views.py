@@ -686,11 +686,8 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         data = serializer.data
         total_data = self.queryset.count()  # Get the total number of data
-        print("*"*100)
-        print(total_data)
-        inventory_out = InventoryOut.objects.all()
-        if inventory_out.quantity > queryset.quantity:
-            return Response({"message": "InventoryOut quantity is greater than InventoryInto quantity"})
+        #print("*"*100)
+        #print(total_data)
 
         response_data = {
             "status": "success",
@@ -721,7 +718,7 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
             print(type(request.data))
             data = request.data
             data["user"] = request.user.id
-            print(data)
+            #print(data)
             serializer = self.get_serializer(data=data)
             if serializer.is_valid():
                 serializer.save()
@@ -1081,3 +1078,77 @@ class DiagnosticsMounthCountView(APIView):
         # Obtenez le nombre d'éléments pendant le mois en cours
         total = Diagnostics.objects.filter(date_creation__gte=start_of_month).count()
         return Response({ "count": total,"date":"this month"})
+
+class TrackingPiecesViewSet(viewsets.ModelViewSet):
+    queryset = TrackingPieces.objects.all()
+    serializer_class = TrackingPiecesSerializer
+    '''serializer_class_post = WorkOrderSerializerTwo
+    serializer_class_put = WorkOrderSerializerTwo'''
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+
+    '''def get_serializer_class(self):
+        print("chose sterialiser")
+        if self.request.method == 'POST':
+            print("chose sterialiser post")
+            return self.serializer_class_post
+        elif self.request.method in ['PUT', 'PATCH']:
+            print("chose sterialiser put and patch")
+            return self.serializer_class_put
+        return self.serializer_class'''
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        total_data = self.queryset.count()  # Get the total number of data
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    def list(self, request, *args, **kwargs):
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+
+            data = serializer.data
+            total_data = queryset.count()  # Get the total number of data
+            
+            response_data = {
+                "status": "success",
+                "data": data,
+                "count": total_data,
+                "message": "Data retrieved successfully"
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+                print(request.data)
+                print(type(request.data))
+                serializer = self.get_serializer(data=request.data)
+                if serializer.is_valid():
+                    serializer.save()#id_UserAgent=request.user)
+                    message = f"Data added successfully"
+                    return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
+                else:
+                    return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+                instance = self.get_object()
+                serializer = self.get_serializer(instance, data=request.data, partial=True)
+                if serializer.is_valid():
+                    serializer.save()#id_UserAgent=request.user)
+                    return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

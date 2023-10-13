@@ -145,16 +145,19 @@ class InventoryOutSerializer(serializers.ModelSerializer):
 
         # Vérifiez si la quantité de la nouvelle donnée est supérieure à la somme totale
         if data['quantity'] > total_quantity:
-            raise serializers.ValidationError('Quantity cannot be greater than total quantity')
+            raise serializers.ValidationError('Quantity inventory out cannot be greater than quantity inventory into')
     
 class InventoryOutSerializerTwo(serializers.ModelSerializer):
-    id_article = serializers.PrimaryKeyRelatedField(queryset=Inventory.objects.all())
+    id_inventory_into = serializers.PrimaryKeyRelatedField(queryset=InventoryInto.objects.all())
     id_team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.all())
     id_agent = serializers.PrimaryKeyRelatedField(queryset=Agent.objects.all())
-    #user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     class Meta:
         model = InventoryOut
-        fields = '__all__'
+        fields = '__all__' 
+
+   
+        
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
@@ -204,7 +207,7 @@ class WorkOrderSerializerTwo(serializers.ModelSerializer):
 
 
 class DiagnosticsSerializer(serializers.ModelSerializer):
-    id_machine = serializers.SerializerMethodField()
+    id_machine_name_full = serializers.SerializerMethodField()
     id_code_panne = serializers.SerializerMethodField()
     id_machine_name = serializers.SerializerMethodField()
     class Meta:
@@ -215,6 +218,7 @@ class DiagnosticsSerializer(serializers.ModelSerializer):
             'id_work_order',
             'id_machine',
             'id_machine_name',
+            'id_machine_name_full',
             'roster',
             'comment',
             'typeMaintenance',
@@ -252,13 +256,22 @@ class DiagnosticsSerializer(serializers.ModelSerializer):
               ]
     def get_id_code_panne(self, obj):
         return f"{obj.id_work_order.id_code_panne.code}"
-    def get_id_machine(self, obj):
+    def get_id_machine_name_full(self, obj):
         return f"{obj.id_machine.marque}  {obj.id_machine.nom}"
     def get_id_machine_name(self, obj):
         return f"{obj.id_machine.nom}"
 class DiagnosticsSerializerTwo(serializers.ModelSerializer):
     id_machine = serializers.PrimaryKeyRelatedField(queryset=Machine.objects.all())
     id_work_order = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all())
+
     class Meta:
         model = Diagnostics
         exclude = ["roster","time_decimal_hour",'start_repair_date', 'start_repair_time', 'end_repair_date', 'end_repair_time']
+
+class TrackingPiecesSerializer(serializers.ModelSerializer):
+    id_machine = serializers.PrimaryKeyRelatedField(queryset=Machine.objects.all())
+    id_work_order = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all())
+    id_inventory_out = serializers.PrimaryKeyRelatedField(many=True, queryset=InventoryOut.objects.all())
+    class Meta:
+        model = TrackingPieces
+        fields = "__all__"

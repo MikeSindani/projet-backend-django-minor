@@ -21,6 +21,7 @@ router.register(r'categoriepanne', CategoriePanneViewSet)
 router.register(r'codepanne', CodePanneViewSet)
 router.register(r'workorder', WorkOrderViewSet)
 router.register(r'diagnostics', DiagnosticsViewSet)
+router.register(r'tracking_pieces', TrackingPiecesViewSet)
 
 
 

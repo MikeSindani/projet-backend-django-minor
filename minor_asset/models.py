@@ -167,12 +167,9 @@ class InventoryInto(models.Model):
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
     
 
-
-
 class InventoryOut(models.Model):
     quantity = models.IntegerField()
-    id_article = models.ForeignKey(Inventory, on_delete=models.SET_NULL, null=True)
-    id_inventory_into = models.ForeignKey(InventoryInto, on_delete=models.SET_NULL, null=True)
+    id_inventory_into = models.ForeignKey("InventoryInto", on_delete=models.SET_NULL, null=True)
     id_agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True)
     id_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -375,7 +372,20 @@ class Diagnostics(models.Model):
     time_modified = models.TimeField(auto_now=True)
     
 
+class TrackingPieces(models.Model):
+    # Ce champ contient le nom de la catégorie
+    id_machine = models.ForeignKey(Machine, on_delete=models.SET_NULL, null=True)
+    id_inventory_out = models.ManyToManyField(InventoryOut)
+    id_work_order = models.ForeignKey(WorkOrder, on_delete=models.SET_NULL, null=True)
+    
+     # date et time pour creat et modified 
+    date_creation = models.DateTimeField(auto_now_add=True)
+    time_created = models.TimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    time_modified = models.TimeField(auto_now=True)
 
+    def __str__(self):
+        return self.id_machine
 
 
 
