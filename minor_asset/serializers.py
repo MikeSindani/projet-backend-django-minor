@@ -275,3 +275,13 @@ class TrackingPiecesSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrackingPieces
         fields = "__all__"
+
+class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlanifierMaintenance
+        fields = '__all__'
+
+class RemindSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Remind
+        fields = '__all__'

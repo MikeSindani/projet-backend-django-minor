@@ -22,6 +22,8 @@ router.register(r'codepanne', CodePanneViewSet)
 router.register(r'workorder', WorkOrderViewSet)
 router.register(r'diagnostics', DiagnosticsViewSet)
 router.register(r'tracking_pieces', TrackingPiecesViewSet)
+router.register(r'planifier_maintenance', PlanifierMaintenanceViewSet)
+router.register(r'reminds', RemindViewSet)
 
 
 
@@ -38,6 +40,9 @@ urlpatterns = [
     path('diagnostics_count_current/', DiagnosticsCurrentCountView.as_view(), name='diagnostics_count_current'),
     path('diagnostics_count_week/', DiagnosticsWeekCountView.as_view(), name='diagnostics_count_week'),
     path('diagnostics_count_month/', DiagnosticsMounthCountView.as_view(), name='diagnostics_count_mounth'),
+    path('planifier_maintenance_count_current/', PlanifierMaintenanceCurrentCountView.as_view(), name='diagnostics_count_current'),
+    path('planifier_maintenance_count_week/', PlanifierMaintenanceWeekCountView.as_view(), name='diagnostics_count_week'),
+    path('planifier_maintenance_count_month/', PlanifierMaintenanceMounthCountView.as_view(), name='diagnostics_count_mounth'),
     path('register/', RegisterAPI.as_view(), name='register'),
     path('', include(router.urls)),
 ]

@@ -213,6 +213,9 @@ class PlanifierMaintenance(models.Model):
     
     id_machine = models.ForeignKey('Machine', on_delete=models.SET_NULL, null=True)
     priority = models.CharField(max_length=10, choices=PRIORITE_CHOICES)
+    date_of_taking_action = models.DateField()
+    time_of_taking_action = models.TimeField()
+    comments = models.TextField(null=True, blank=True)
     
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -233,10 +236,8 @@ class PlanifierTeam(models.Model):
 class Remind(models.Model):
     id_planifierRepair = models.ForeignKey(PlanifierRepair, on_delete=models.SET_NULL, null=True, blank=True)
     id_planifierMaintenance = models.ForeignKey(PlanifierMaintenance, on_delete=models.SET_NULL, null=True, blank=True)
-    id_planifierTeam = models.ForeignKey(PlanifierTeam, on_delete=models.SET_NULL, null=True, blank=True)
     datetime_remind = models.DateTimeField(null=True, blank=True)
     day = models.CharField(max_length=1,null=True, blank=True) 
-    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
