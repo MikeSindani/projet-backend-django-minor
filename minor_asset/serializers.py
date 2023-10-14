@@ -276,12 +276,20 @@ class TrackingPiecesSerializer(serializers.ModelSerializer):
         model = TrackingPieces
         fields = "__all__"
 
-class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
+class PlanifierMaintenanceSerializerTwo(serializers.ModelSerializer):
     class Meta:
         model = PlanifierMaintenance
         fields = '__all__'
+class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
+    id_machine = serializers.SerializerMethodField()
+    class Meta:
+        model = PlanifierMaintenance
+        fields = '__all__'
+    def get_id_machine(self, obj):
+        return f"{obj.id_machine.nom}"
 
 class RemindSerializer(serializers.ModelSerializer):
+    id_planifierMaintenance = serializers.PrimaryKeyRelatedField(queryset=PlanifierMaintenance.objects.all())
     class Meta:
         model = Remind
         fields = '__all__'

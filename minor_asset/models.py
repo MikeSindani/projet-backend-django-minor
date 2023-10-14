@@ -234,10 +234,9 @@ class PlanifierTeam(models.Model):
 
 
 class Remind(models.Model):
-    id_planifierRepair = models.ForeignKey(PlanifierRepair, on_delete=models.SET_NULL, null=True, blank=True)
     id_planifierMaintenance = models.ForeignKey(PlanifierMaintenance, on_delete=models.SET_NULL, null=True, blank=True)
     datetime_remind = models.DateTimeField(null=True, blank=True)
-    day = models.CharField(max_length=1,null=True, blank=True) 
+    day = models.CharField(max_length=100,null=True, blank=True) 
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)

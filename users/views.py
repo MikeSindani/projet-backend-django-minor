@@ -19,8 +19,9 @@ class GetUserDetailsView(APIView):
 
         # Check if userModel.agent exists before accessing its 'team' attribute
         if userModel.agent:
-            if userModel.agent.team:
-                userAgent = userModel.agent.team.id
+            if userModel.agent:
+                userAgent = userModel.agent.team.nom
+                
                 
         return Response({
             'id':user.id,
@@ -29,5 +30,5 @@ class GetUserDetailsView(APIView):
             'first_name': user.first_name,
             'last_name': user.last_name,
             'poste': user.poste,
-            "team": userAgent
+            "team": userAgent,
         })

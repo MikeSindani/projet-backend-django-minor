@@ -945,9 +945,6 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
             instance.delete()
             return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-
-
-
 class WorkOrderCurrentCountView(APIView):
     def get(self, request):
         current_date = timezone.now().date()
@@ -1181,8 +1178,21 @@ class PlanifierMaintenanceMounthCountView(APIView):
 class PlanifierMaintenanceViewSet(viewsets.ModelViewSet):
     queryset = PlanifierMaintenance.objects.all()
     serializer_class = PlanifierMaintenanceSerializer
+    serializer_class_post = PlanifierMaintenanceSerializerTwo
+    serializer_class_put = PlanifierMaintenanceSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+
+    def get_serializer_class(self):
+        print("chose sterialiser")
+        if self.request.method == 'POST':
+            print("chose sterialiser post")
+            return self.serializer_class_post
+        elif self.request.method in ['PUT', 'PATCH']:
+            print("chose sterialiser put and patch")
+            return self.serializer_class_put
+        return self.serializer_class
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1242,12 +1252,13 @@ class PlanifierMaintenanceViewSet(viewsets.ModelViewSet):
 class RemindViewSet(viewsets.ModelViewSet):
         queryset = Remind.objects.all()
         serializer_class = RemindSerializer
+        lookup_field = 'id_planifierMaintenance'
         authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
         permission_classes = [permissions.IsAuthenticated]
 
         def retrieve(self, request, *args, **kwargs):
             instance = self.get_object()
-            serializer = self.get_serializer(instance)
+            serializer = self.get_serializer(instance, many=True)
             data = serializer.data
             total_data = self.queryset.count()  # Get the total number of data
             print(data)
