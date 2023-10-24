@@ -191,12 +191,13 @@ class PlanifierRepair(models.Model):
     ]
     
     id_machine = models.ForeignKey("Machine", on_delete=models.SET_NULL, null=True)
-    date_of_taking_action = models.DateTimeField()
-    breakdown_description = models.CharField(max_length=200)
-    action = models.CharField(max_length=200)
-    target_running_date = models.DateTimeField() 
-    priorite = models.CharField(max_length=10, choices=PRIORITE_CHOICES, blank=True)
-    comments = models.TextField(null=True, blank=True)
+    date_of_taking_action = models.DateField()
+    time_of_taking_action = models.TimeField()
+    breakdown_description = models.TextField(null=True, blank=True)
+    action = models.CharField(max_length=500)
+    target_running_date = models.DateField(null=True, blank=True) 
+    target_running_time = models.TimeField(null=True, blank=True) 
+    priority = models.CharField(max_length=10, choices=PRIORITE_CHOICES, blank=True)
     
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -225,25 +226,49 @@ class PlanifierMaintenance(models.Model):
 
 class PlanifierTeam(models.Model):
     id_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True)
-    
+    comments = models.TextField(null=True, blank=True)
+    date_of_taking_action = models.DateField()
+    time_of_taking_action = models.TimeField()
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
-
 
 class Remind(models.Model):
-    id_planifierMaintenance = models.ForeignKey(PlanifierMaintenance, on_delete=models.SET_NULL, null=True, blank=True)
+    id_planifierMaintenance = models.ForeignKey(PlanifierMaintenance, on_delete=models.SET_NULL, null=True)
     datetime_remind = models.DateTimeField(null=True, blank=True)
-    day = models.CharField(max_length=100,null=True, blank=True) 
+    day = models.CharField(max_length=100,null=True, blank=True)
+
+    # date et time pour creat et modified 
+    date_creation = models.DateTimeField(auto_now_add=True)
+    time_created = models.TimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    time_modified = models.TimeField(auto_now=True)
+    
+class RemindTeam(models.Model):
+    id_PlanifierTeam = models.ForeignKey(PlanifierTeam, on_delete=models.SET_NULL, null=True,blank=True)
+    datetime_remind = models.DateTimeField(null=True, blank=True)
+    day = models.CharField(max_length=100,null=True, blank=True)
+
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+class RemindRepair(models.Model):
+    id_PlanifierRepair = models.ForeignKey(PlanifierRepair, on_delete=models.SET_NULL, null=True, blank=True)
+    datetime_remind = models.DateTimeField(null=True, blank=True)
+    day = models.CharField(max_length=100,null=True, blank=True)
 
+    # date et time pour creat et modified 
+    date_creation = models.DateTimeField(auto_now_add=True)
+    time_created = models.TimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    time_modified = models.TimeField(auto_now=True)
+
+    
 def generate_work_order():
     return ''.join(random.choices(string.digits, k=6))
 

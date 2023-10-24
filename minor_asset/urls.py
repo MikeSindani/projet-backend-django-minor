@@ -24,10 +24,17 @@ router.register(r'diagnostics', DiagnosticsViewSet)
 router.register(r'tracking_pieces', TrackingPiecesViewSet)
 router.register(r'planifier_maintenance', PlanifierMaintenanceViewSet)
 router.register(r'reminds', RemindViewSet)
+router.register(r'planifier_repair', PlanifierRepairViewSet)
+router.register(r'remind_repairs', RemindRepairViewSet)
+router.register(r'planifier_teams', PlanifierTeamViewSet)
+router.register(r'remind_teams', RemindTeamViewSet)
 
 
 
 urlpatterns = [
+    path('get-reminds/<int:id_planifierMaintenance>/', remind_retrieve),
+    path('get-reminds-repair/<int:id_planifierRepair>/', remind_repair_retrieve),
+    path('get-reminds-team/<int:id_PlanifierTeam>/', remind_team_retrieve),
     path('machine-count/', MachineCountView.as_view(), name='machine-count'),
     path('categorie-machine-count/', CategorieMachineCountView.as_view(), name='machine-categorie-count'),
     path('provider_count/', ProviderCountView.as_view(), name='provider_count'),
@@ -43,6 +50,9 @@ urlpatterns = [
     path('planifier_maintenance_count_current/', PlanifierMaintenanceCurrentCountView.as_view(), name='diagnostics_count_current'),
     path('planifier_maintenance_count_week/', PlanifierMaintenanceWeekCountView.as_view(), name='diagnostics_count_week'),
     path('planifier_maintenance_count_month/', PlanifierMaintenanceMounthCountView.as_view(), name='diagnostics_count_mounth'),
+    path('planifier_repai_count_current/', PlanifierRepairCurrentCountView.as_view(), name='repai_count_current'),
+    path('planifier_repai_count_week/', PlanifierRepairWeekCountView.as_view(), name='repai_count_week'),
+    path('planifier_repai_count_month/', PlanifierRepairMounthCountView.as_view(), name='repai_count_mounth'),
     path('register/', RegisterAPI.as_view(), name='register'),
     path('', include(router.urls)),
 ]

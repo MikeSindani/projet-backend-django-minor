@@ -159,10 +159,31 @@ class InventoryOutSerializerTwo(serializers.ModelSerializer):
    
         
 class TeamSerializer(serializers.ModelSerializer):
+    team_supervisor = serializers.SerializerMethodField()
+    team_assitance = serializers.SerializerMethodField()
     class Meta:
         model = Team
         fields = '__all__' 
+    def get_team_supervisor(self, obj):
+        try:
+            agent = Agent.objects.get(team=obj.id,isSupervisor=True)
+        except:
+            return f"No name found"
+        return f"{agent.nom}  {agent.prenom}"
 
+    def get_team_assitance(self, obj):
+        try:
+            agent = Agent.objects.get(team=obj.id,isAssistant=True)
+        except:
+            return f"No name found"
+        return f"{agent.nom}  {agent.prenom}"
+
+        
+class TeamSerializerTwo(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = '__all__' 
+    
 
 class CategoriePanneSerializer(serializers.ModelSerializer):
     class Meta:
@@ -289,7 +310,84 @@ class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
         return f"{obj.id_machine.nom}"
 
 class RemindSerializer(serializers.ModelSerializer):
-    id_planifierMaintenance = serializers.PrimaryKeyRelatedField(queryset=PlanifierMaintenance.objects.all())
+    id_machine = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    date_of_taking_action = serializers.SerializerMethodField()
+    time_of_taking_action = serializers.SerializerMethodField() 
     class Meta:
         model = Remind
+        fields = '__all__'
+
+    def get_id_machine(self, obj):
+        return f"{obj.id_planifierMaintenance.id_machine}" 
+    def get_priority(self, obj):
+        return f"{obj.id_planifierMaintenance.priority}"
+    def get_date_of_taking_action(self, obj):
+        return f"{obj.id_planifierMaintenance.date_of_taking_action}"
+    def get_time_of_taking_action(self, obj):
+        return f"{obj.id_planifierMaintenance.time_of_taking_action}"
+
+class RemindSerializerTwo(serializers.ModelSerializer):
+    id_planifierMaintenance = serializers.PrimaryKeyRelatedField(queryset=PlanifierMaintenance.objects.all())
+    #id_PlanifierTeam = serializers.PrimaryKeyRelatedField(queryset=PlanifierTeam.objects.all())
+    class Meta:
+        model = Remind
+        fields = '__all__'
+
+class PlanifierRepairSerializer(serializers.ModelSerializer):
+    id_machine = serializers.SerializerMethodField()
+    class Meta:
+        model = PlanifierRepair
+        fields = '__all__'
+    def get_id_machine(self, obj):
+        return f"{obj.id_machine.nom}" 
+class PlanifierRepairSerializerTwo(serializers.ModelSerializer):
+    id_machine = serializers.PrimaryKeyRelatedField(queryset=Machine.objects.all())
+    class Meta:
+        model = PlanifierRepair
+        fields = '__all__'
+   
+class RemindRepairSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = RemindRepair
+            fields = '__all__'
+
+class PlanifierTeamSerializerTwo(serializers.ModelSerializer):
+    id_team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.all())
+    class Meta:
+        model = PlanifierTeam
+        fields = '__all__'
+
+class PlanifierTeamSerializer(serializers.ModelSerializer):
+    team_name = serializers.SerializerMethodField()
+    team_description = serializers.SerializerMethodField()
+    team_supervisor = serializers.SerializerMethodField()
+    team_assitance = serializers.SerializerMethodField()
+    class Meta:
+        model = PlanifierTeam
+        fields = '__all__'
+    def get_team_name (self, obj):
+        return f"{obj.id_team.name}" 
+    def get_team_description (self, obj):
+        return f"{obj.id_team.description}" 
+    def get_team_supervisor(self, obj):
+        try:
+            agent = Agent.objects.get(team=obj.id_team.id,isSupervisor=True)
+        except:
+            return f"No name found"
+        return f"{agent.nom}  {agent.prenom}"
+
+    def get_team_assitance(self, obj):
+        try:
+            agent = Agent.objects.get(team=obj.id_team.id,isAssistant=True)
+            print(obj.id_team)
+        except:
+            return f"No name found"
+        return f"{agent.nom}  {agent.prenom}"
+
+
+class RemindTeamSerializer(serializers.ModelSerializer):
+    id_PlanifierTeam = serializers.PrimaryKeyRelatedField(queryset=PlanifierTeam.objects.all())
+    class Meta:
+        model = RemindTeam
         fields = '__all__'

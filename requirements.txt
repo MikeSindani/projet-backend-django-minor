@@ -2,11 +2,13 @@ django
 djangorestframework
 pyyaml
 requests
+pillow
+setuptools
 django-cors-headers
 python-dotenv
 gunicorn
 whitenoise
 dj-database-url
-psycopg2
 django-filter
 djangorestframework-simplejwt
+psycopg2

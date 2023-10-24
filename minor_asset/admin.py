@@ -19,4 +19,8 @@ admin.site.register(Diagnostics)
 admin.site.register(TrackingPieces)
 admin.site.register(PlanifierMaintenance)
 admin.site.register(Remind)
+admin.site.register(PlanifierRepair)
+admin.site.register(RemindRepair)
+admin.site.register(PlanifierTeam)
+admin.site.register(RemindTeam)
 # Register your models here.

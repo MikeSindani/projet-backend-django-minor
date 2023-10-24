@@ -49,7 +49,7 @@ class Agent(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team')
 
     isSupervisor = models.BooleanField(default=False)
-    isAssistant = models.BooleanField(default=False,)
+    isAssistant = models.BooleanField(default=False)
     isAgent = models.BooleanField(default=True)
 
     user_apps_type = models.CharField(max_length=20, choices=APPS_USER)
