@@ -200,12 +200,9 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     id_machine_model = serializers.SerializerMethodField()
     id_machine_marque = serializers.SerializerMethodField()
     id_machine_immatriculation = serializers.SerializerMethodField()
-    id_code_panne = serializers.SerializerMethodField()
-    id_code_panne_description = serializers.SerializerMethodField()
-    id_code_panne_categorie = serializers.SerializerMethodField()
     class Meta:
         model = WorkOrder
-        fields = ["id_code_panne_categorie","id_code_panne","id_code_panne_description","work_order","id_machine","id_machine_model","id_machine_marque","id_machine_immatriculation","date_creation","date_modification"]
+        fields = ["work_order","id_machine","id_machine_model","id_machine_marque","id_machine_immatriculation","date_creation","date_modification"]
     def get_id_machine(self, obj):
         return f"{obj.id_machine.nom}"
     def get_id_machine_model(self, obj):
@@ -214,12 +211,6 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         return f"{obj.id_machine.marque}"
     def get_id_machine_immatriculation(self, obj):
         return f"{obj.id_machine.immatriculation}"
-    def get_id_code_panne(self, obj):
-        return f"{obj.id_code_panne.code}"
-    def get_id_code_panne_description(self, obj):
-        return f"{obj.id_code_panne.description}"
-    def get_id_code_panne_categorie(self, obj):
-        return f"{obj.id_code_panne.id_categorie_panne.nom}"
 class WorkOrderSerializerTwo(serializers.ModelSerializer):
     class Meta:
         model = WorkOrder
@@ -229,58 +220,15 @@ class WorkOrderSerializerTwo(serializers.ModelSerializer):
 
 class DiagnosticsSerializer(serializers.ModelSerializer):
     id_machine_name_full = serializers.SerializerMethodField()
-    id_code_panne = serializers.SerializerMethodField()
     id_machine_name = serializers.SerializerMethodField()
     class Meta:
         model = Diagnostics
-        fields = [
-            "id",
-            "id_code_panne",
-            'id_work_order',
-            'id_machine',
-            'id_machine_name',
-            'id_machine_name_full',
-            'roster',
-            'comment',
-            'typeMaintenance',
-            'breakdown_date',
-            'breakdown_time',
-            'start_repair_date',
-            'start_repair_time',
-            'end_repair_date',
-            'end_repair_time',
-            'priority',
-            'time_decimal_hour',
-            'km_panne',
-            'km_en_service',
-            'fuel',
-            'cooling',
-            'grease',
-            'engin_oil',
-            'hydraulic_oil',
-            'transmission_oil',
-            'cost',
-            'id_team',
-            'start_diag_date',
-            'start_diag_time',
-            'end_diag_time',
-            'end_diag_date',
-            'Brake_fuite',
-            'poids',
-            'capacity',
-            'currency',
-            'distance',
-            'date_creation',
-            'time_created',
-            'date_modification',
-            'time_modified'
-              ]
-    def get_id_code_panne(self, obj):
-        return f"{obj.id_work_order.id_code_panne.code}"
+        fields = "__all__"
     def get_id_machine_name_full(self, obj):
         return f"{obj.id_machine.marque}  {obj.id_machine.nom}"
     def get_id_machine_name(self, obj):
         return f"{obj.id_machine.nom}"
+        
 class DiagnosticsSerializerTwo(serializers.ModelSerializer):
     id_machine = serializers.PrimaryKeyRelatedField(queryset=Machine.objects.all())
     id_work_order = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all())

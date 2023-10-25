@@ -313,7 +313,7 @@ class WorkOrder(models.Model):
     work_order = models.CharField(max_length=6, default=generate_work_order, primary_key=True)
     id_machine = models.ForeignKey(Machine, on_delete=models.SET_NULL, null=True)
     id_inventaire = models.ForeignKey(Inventory, on_delete=models.SET_NULL, null=True, blank=True)
-    id_code_panne = models.ForeignKey(CodePanne, on_delete=models.SET_NULL, null=True)
+    id_code_panne = models.ManyToManyField(CodePanne)
     
      # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -389,8 +389,12 @@ class Diagnostics(models.Model):
     capacity = models.CharField(max_length=100,null=True,blank=True)
     currency = models.CharField(max_length=100,null=True,blank=True)
     distance = models.CharField(max_length=100,null=True,blank=True)
-    
-     # date et time pour creat et modified 
+
+    # bool for choise 
+    isDiagnostic = models.BooleanField(default=False)
+    isRepair = models.BooleanField(default=False)
+
+    # date et time pour creat et modized 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
