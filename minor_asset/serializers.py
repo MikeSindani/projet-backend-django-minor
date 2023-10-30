@@ -98,7 +98,8 @@ class InventorySerializerTwo(serializers.ModelSerializer):
 
 class InventoryIntoSerializer(serializers.ModelSerializer):
     id_article = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
+    etat = serializers.SerializerMethodField()
+    quantity_available = serializers.SerializerMethodField()
 
     class Meta:
         model = InventoryInto
@@ -107,21 +108,28 @@ class InventoryIntoSerializer(serializers.ModelSerializer):
     def get_id_article(self, obj):
         return f"{obj.id_article.designation}"
 
-    def get_status(self, obj):
+    def get_etat(self, obj):
         # Obtenez la somme totale de la quantité pour tous les objets InventoryOut qui ont le même id_inventory_into que l'instance actuelle
         total_quantity = InventoryOut.objects.filter(id_inventory_into=obj.id).aggregate(total=Sum('quantity'))['total']
         if total_quantity is None:
             total_quantity = 0
-        if total_quantity > obj.quantity:
+        if total_quantity >= obj.quantity:
             return "unavailable"
         return "available"
+    def get_quantity_available(self, obj):
+        # Obtenez la somme totale de la quantité pour tous les objets InventoryOut qui ont le même id_inventory_into que l'instance actuelle
+        total_quantity = InventoryOut.objects.filter(id_inventory_into=obj.id).aggregate(total=Sum('quantity'))['total']
+        if total_quantity is None:
+            total_quantity = 0
+        if total_quantity >= obj.quantity:
+            return 0
+        return obj.quantity - total_quantity 
+    
 class InventoryIntoSerializerTwo(serializers.ModelSerializer):
     id_article = serializers.PrimaryKeyRelatedField(queryset=Inventory.objects.all())
     class Meta:
         model = InventoryInto
         fields = '__all__'
-
-
 
 class InventoryOutSerializer(serializers.ModelSerializer):
     id_inventory_into = serializers.SerializerMethodField()
@@ -138,11 +146,10 @@ class InventoryOutSerializer(serializers.ModelSerializer):
     def get_id_team(self, obj):
         return f"{obj.id_team.name}"
     def get_id_inventory_into(self, obj):
-        return f"{obj.id_inventory_into.id_article.designation}"
+        return f"{obj.id_inventory_into}"
     def validate(self, data):
         # Obtenez la somme totale de la quantité pour tous les objets Movie
         total_quantity = InventoryOut.objects.filter(id_inventory_into=data['id_inventory_into']).aggregate(total=Sum('quantity'))['total']
-
         # Vérifiez si la quantité de la nouvelle donnée est supérieure à la somme totale
         if data['quantity'] > total_quantity:
             raise serializers.ValidationError('Quantity inventory out cannot be greater than quantity inventory into')
@@ -156,27 +163,34 @@ class InventoryOutSerializerTwo(serializers.ModelSerializer):
         model = InventoryOut
         fields = '__all__' 
 
-   
         
 class TeamSerializer(serializers.ModelSerializer):
+    team_name = serializers.SerializerMethodField()
+    team_description = serializers.SerializerMethodField()
     team_supervisor = serializers.SerializerMethodField()
     team_assitance = serializers.SerializerMethodField()
     class Meta:
         model = Team
         fields = '__all__' 
+    def get_team_name (self, obj):
+        return f"{obj.name}" 
+    def get_team_description (self, obj):
+        return f"{obj.description}"
     def get_team_supervisor(self, obj):
+
         try:
-            agent = Agent.objects.get(team=obj.id,isSupervisor=True)
+            agent = Agent.objects.filter(team=obj.id,isSupervisor=True)[0]
         except:
             return f"No name found"
-        return f"{agent.nom}  {agent.prenom}"
+        return f"{agent.prenom} {agent.nom}"
 
     def get_team_assitance(self, obj):
+
         try:
-            agent = Agent.objects.get(team=obj.id,isAssistant=True)
+            agent = Agent.objects.filter(team=obj.id,isAssistant=True)[0]
         except:
             return f"No name found"
-        return f"{agent.nom}  {agent.prenom}"
+        return f"{agent.prenom} {agent.nom}"
 
         
 class TeamSerializerTwo(serializers.ModelSerializer):
@@ -245,6 +259,18 @@ class TrackingPiecesSerializer(serializers.ModelSerializer):
         model = TrackingPieces
         fields = "__all__"
 
+
+class InventoryOutSerializerForTracking(serializers.ModelSerializer):
+    class Meta:
+        model = InventoryOut
+        fields = '__all__'  # or specify the fields you want to include
+    
+class TrackingPiecesSerializerforDetails(serializers.ModelSerializer):
+    id_inventory_out = InventoryOutSerializerForTracking(many=True, read_only=True)
+    class Meta:
+        model = TrackingPieces
+        fields = ['id_inventory_out']
+
 class PlanifierMaintenanceSerializerTwo(serializers.ModelSerializer):
     class Meta:
         model = PlanifierMaintenance
@@ -267,7 +293,7 @@ class RemindSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_id_machine(self, obj):
-        return f"{obj.id_planifierMaintenance.id_machine}" 
+        return f"{obj.id_planifierMaintenance.id_machine.nom}" 
     def get_priority(self, obj):
         return f"{obj.id_planifierMaintenance.priority}"
     def get_date_of_taking_action(self, obj):
@@ -319,19 +345,21 @@ class PlanifierTeamSerializer(serializers.ModelSerializer):
     def get_team_description (self, obj):
         return f"{obj.id_team.description}" 
     def get_team_supervisor(self, obj):
+
         try:
-            agent = Agent.objects.get(team=obj.id_team.id,isSupervisor=True)
+            agent = Agent.objects.filter(team=obj.id_team.id,isSupervisor=True)[0]
+            return f"{agent.nom}  {agent.prenom}"
         except:
-            return f"No name found"
-        return f"{agent.nom}  {agent.prenom}"
+            return f"no name found"
+        
 
     def get_team_assitance(self, obj):
         try:
-            agent = Agent.objects.get(team=obj.id_team.id,isAssistant=True)
-            print(obj.id_team)
+            agent = Agent.objects.filter(team=obj.id_team.id,isAssistant=True)[0]
+            return f"{agent.nom}  {agent.prenom}"
         except:
             return f"No name found"
-        return f"{agent.nom}  {agent.prenom}"
+        
 
 
 class RemindTeamSerializer(serializers.ModelSerializer):
@@ -339,3 +367,33 @@ class RemindTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = RemindTeam
         fields = '__all__'
+
+class RemindTeamSerializerSpecialGet(serializers.ModelSerializer):
+    team_name = serializers.SerializerMethodField()
+    team_description = serializers.SerializerMethodField()
+    team_supervisor = serializers.SerializerMethodField()
+    team_assitance = serializers.SerializerMethodField()
+    class Meta:
+        model = RemindTeam
+        fields = '__all__'
+    def get_team_name (self, obj):
+        return f"{obj.id_PlanifierTeam.id_team.name}" 
+    def get_team_description (self, obj):
+        return f"{obj.id_PlanifierTeam.id_team.description}" 
+    def get_team_supervisor(self, obj):
+        agent = ""
+        try:
+            agent = Agent.objects.get(team=obj.id_PlanifierTeam.id_team.id,isSupervisor=True)
+        except:
+            return f"{obj.id_PlanifierTeam.id_team.id}"
+        return f"{agent.nom}  {agent.prenom}"
+
+    def get_team_assitance(self, obj):
+        agent = ""
+        try:
+            agent = Agent.objects.get(team=obj.id_PlanifierTeam.id_team.id,isAssistant=True)
+            print(obj.id_team)
+        except:
+            return f"No name found"
+        return f"{agent.nom}  {agent.prenom}"
+    

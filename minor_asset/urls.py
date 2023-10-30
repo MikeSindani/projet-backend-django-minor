@@ -36,6 +36,11 @@ urlpatterns = [
     path('get-reminds/<int:id_planifierMaintenance>/', remind_retrieve),
     path('get-reminds-repair/<int:id_planifierRepair>/', remind_repair_retrieve),
     path('get-reminds-team/<int:id_PlanifierTeam>/', remind_team_retrieve),
+    path('get-team/<int:team>/',team_retrieve),
+    path('get-list-inventory/',InventoryInto_list),
+    path('get-list-inventory-unavailable/',InventoryInto_list_2),
+
+    path('get-list-traking-details/<int:work_order>/',TrackingPieces_retrieve),
     path('machine-count/', MachineCountView.as_view(), name='machine-count'),
     path('categorie-machine-count/', CategorieMachineCountView.as_view(), name='machine-categorie-count'),
     path('provider_count/', ProviderCountView.as_view(), name='provider_count'),

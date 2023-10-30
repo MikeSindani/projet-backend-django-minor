@@ -34,7 +34,7 @@ class Machine(models.Model):
     time_modified = models.TimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.nom} ({self.marque} {self.modele} )"
+        return f"{self.nom} {self.marque} {self.modele}"
 
 class Adresse(models.Model):
     # Les attributs du modèle
@@ -56,7 +56,7 @@ class Client(models.Model):
     phone1 = models.CharField(max_length=10,null=True, blank=True,unique=True)
     phone2 = models.CharField(max_length=10, blank=True,unique=True)
     email = models.EmailField()
-    asset_code = models.ForeignKey("Machine", on_delete=models.SET_NULL, null=True) #asset code 
+    id_machine = models.ForeignKey("Machine", on_delete=models.SET_NULL, null=True) #asset code 
    
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
@@ -131,16 +131,21 @@ cree un model viewset + son sterialiser + son url router + son ajout dans la pag
 class Inventory(models.Model):
     designation = models.CharField(max_length=250,null=True, blank=True)
     unit = models.CharField(max_length=20,null=True, blank=True)
-    capacity = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
-    price = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
+    capacity = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+
+    price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    price_used_by_entreprise = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     currency = models.CharField(max_length=20,null=True, blank=True)
+    rate = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    currency_used_by_entreprise = models.CharField(max_length=20,null=True, blank=True)
+
     id_location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True)
     id_provider = models.ForeignKey(Provider, on_delete=models.SET_NULL, null=True, blank=True)
     id_category = models.ForeignKey(CategoryInventory, on_delete=models.SET_NULL, null=True, blank=True)
     image = models.ImageField(upload_to='articles/', null=True, blank=True)
     code_bar = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(blank=True)
-    # date et time pour creat et modified 
+    # date et time pour creat et modified  
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True) 
@@ -151,12 +156,18 @@ class Inventory(models.Model):
 
 class InventoryInto(models.Model):
     quantity = models.IntegerField(null=True, blank=True)
-    id_article = models.ForeignKey(Inventory, on_delete=models.SET_NULL, null=True, blank=True)
+    id_article = models.ForeignKey("Inventory", on_delete=models.SET_NULL, null=True)
     userOrNew = models.CharField(max_length=20,null=True, blank=True)
     unit = models.CharField(max_length=20,null=True, blank=True)
-    capacity = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
+    capacity = models.DecimalField(max_digits=20, decimal_places=2,null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True) 
+
+    price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    price_used_by_entreprise = models.DecimalField(max_digits=5, decimal_places=3,null=True, blank=True)
+    currency = models.CharField(max_length=20,null=True, blank=True)
+    rate = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    currency_used_by_entreprise = models.CharField(max_length=20,null=True, blank=True)
     
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -165,8 +176,9 @@ class InventoryInto(models.Model):
     time_modified = models.TimeField(auto_now=True)
     # on verfier si la quantite est plein on met a true
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
+    def __str__(self):
+        return self.id_article.designation
     
-
 class InventoryOut(models.Model):
     quantity = models.IntegerField()
     id_inventory_into = models.ForeignKey("InventoryInto", on_delete=models.SET_NULL, null=True)
@@ -174,6 +186,7 @@ class InventoryOut(models.Model):
     id_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     # UserAgent doit etre partout
+    isAvailable = models.BooleanField(default=True)
     
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)

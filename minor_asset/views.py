@@ -166,14 +166,40 @@ class MachineCountView(APIView):
 class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all()
     serializer_class = ClientSerializer
-    filterset_class = ClientFilter
-    filter_backends = [DjangoFilterBackend, SearchFilter]
-    pagination_class = CustomPagination
+    '''filterset_class = ClientFilter
+    filter_backends = [DjangoFilterBackend, SearchFilter]'''
+    '''pagination_class = CustomPagination'''
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     
-    
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        total_data = self.queryset.count()  # Get the total number of data
 
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    def list(self, request, *args, **kwargs):
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+
+            data = serializer.data
+            total_data = queryset.count()  # Get the total number of data
+            
+            response_data = {
+                "status": "success",
+                "data": data,
+                "count": total_data,
+                "message": "Data retrieved successfully"
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
     def create(self, request, *args, **kwargs):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
@@ -554,7 +580,10 @@ class InventoryIntoViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
             instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            data = request.data
+            data["user"] = request.user.id
+            print(request)
+            serializer = self.get_serializer(instance, data=data, partial=True)
             if serializer.is_valid():
                 serializer.save()#id_UserAgent=request.user)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
@@ -717,10 +746,16 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
-            print(request.data)
-            print(type(request.data))
+            #print(request.data)
+            #print(type(request.data))
             data = request.data
             data["user"] = request.user.id
+            total_quantity = InventoryOut.objects.filter(id_inventory_into= data["id_inventory_into"] ).aggregate(total=Sum('quantity'))['total']
+            if total_quantity > int(data['quantity']) :
+                data["isAvailable"] = False
+            else:
+                data["isAvailable"] = True
+            
             #print(data)
             serializer = self.get_serializer(data=data)
             if serializer.is_valid():
@@ -733,6 +768,12 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             data = request.data
             data["user"] = request.user.id
+            total_quantity = InventoryOut.objects.filter(id_inventory_into= data["id_inventory_into"] ).aggregate(total=Sum('quantity'))['total']
+            if total_quantity > int(data['quantity']) :
+                data["isAvailable"] = False
+            else:
+                data["isAvailable"] = True
+            print(data)
             serializer = self.get_serializer(instance, data=data, partial=True)
             if serializer.is_valid():
                 serializer.save()#id_UserAgent=request.user)
@@ -977,8 +1018,6 @@ class WorkOrderWeekCountView(APIView):
         # Query the database
         total = WorkOrder.objects.filter(date_creation__range=[start_week, end_week]).count()
         return Response({ "count": total,"date":"this week"})
-
-
 
 class WorkOrderMounthCountView(APIView):
     def get(self, request):
@@ -1682,7 +1721,7 @@ class RemindTeamViewSet(viewsets.ModelViewSet):
 def remind_team_retrieve(request, id_PlanifierTeam):
     remind = get_list_or_404(RemindTeam, id_PlanifierTeam=id_PlanifierTeam)
     print(remind)
-    serializer = RemindTeamSerializer(remind, many=True)
+    serializer = RemindTeamSerializerSpecialGet(remind, many=True)
     total_data = RemindTeam.objects.filter(id_PlanifierTeam=id_PlanifierTeam).count()
     data = serializer.data
     response_data = {
@@ -1781,3 +1820,68 @@ class RepairMounthCountView(APIView):
         # Obtenez le nombre d'éléments pendant le mois en cours
         total = Diagnostics.objects.filter(date_creation__gte=start_of_month,isRepair=True).count()
         return Response({ "count": total,"date":"this month"})
+
+
+@api_view(['GET'])
+#@authentication_classes([authentication.SessionAuthentication, authentication.TokenAuthentication])
+#@permission_classes([permissions.IsAuthenticated])
+def team_retrieve(request, team):
+    agent = get_list_or_404(Agent, team=team)
+    print(agent)
+    serializer = AgentSerializer(agent, many=True)
+    total_data = Agent.objects.filter(team=team).count()
+    data = serializer.data
+    print(data)
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def TrackingPieces_retrieve(request, work_order):
+    pieces = get_list_or_404(TrackingPieces, id_work_order=work_order)
+    print(pieces)
+    serializer = TrackingPiecesSerializerforDetails(pieces, many=True)
+    total_data = TrackingPieces.objects.filter(id_work_order=work_order).count()
+    data = serializer.data['id_inventory_out']
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def InventoryInto_list(request):
+    inventoryInto = get_list_or_404(InventoryInto) 
+    serializer = InventoryIntoSerializer(inventoryInto, many=True)
+    print(serializer.data)
+    available_inventory = [item for item in serializer.data if item["etat"] == "available"]
+    total_data = len(available_inventory)
+    data = available_inventory
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+@api_view(['GET'])
+def InventoryInto_list_2(request):
+    inventoryInto = get_list_or_404(InventoryInto) 
+    serializer = InventoryIntoSerializer(inventoryInto, many=True)
+    print(serializer.data)
+    available_inventory = [item for item in serializer.data if item["etat"] == "unavailable"]
+    total_data = len(available_inventory)
+    data = available_inventory
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
