@@ -751,6 +751,8 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
             data = request.data
             data["user"] = request.user.id
             total_quantity = InventoryOut.objects.filter(id_inventory_into= data["id_inventory_into"] ).aggregate(total=Sum('quantity'))['total']
+            if total_quantity is None :
+                 total_quantity = 0
             if total_quantity > int(data['quantity']) :
                 data["isAvailable"] = False
             else:
@@ -1843,10 +1845,17 @@ def team_retrieve(request, team):
 @api_view(['GET'])
 def TrackingPieces_retrieve(request, work_order):
     pieces = get_list_or_404(TrackingPieces, id_work_order=work_order)
-    print(pieces)
     serializer = TrackingPiecesSerializerforDetails(pieces, many=True)
-    total_data = TrackingPieces.objects.filter(id_work_order=work_order).count()
-    data = serializer.data['id_inventory_out']
+    total_data = len(serializer.data)
+    data = []
+    data_list = []
+    for i in range(0, total_data):
+       data_list.append(serializer.data[i]['id_inventory_out'])
+    for i in data_list:
+       if not i:
+          continue
+       data.append(i[0])
+
     response_data = {
         "status": "success",
         "data": data,
@@ -1878,6 +1887,43 @@ def InventoryInto_list_2(request):
     available_inventory = [item for item in serializer.data if item["etat"] == "unavailable"]
     total_data = len(available_inventory)
     data = available_inventory
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+@api_view(['GET'])
+def InventoryOut_list_available(request):
+    inventoryOut = get_list_or_404(InventoryOut) 
+    serializer = InventoryOutSerializer(inventoryOut, many=True)
+    print(serializer.data)
+    available_inventory = [item for item in serializer.data if item["etat"] == "unavailable"]
+    total_data = len(available_inventory)
+    data = available_inventory
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def Code_panne_retrieve(request, work_order):
+    wo = get_list_or_404(WorkOrder, work_order=work_order)
+    serializer = WorkOrderSerializerforDetails(wo, many=True)
+    total_data = len(serializer.data)
+    data = []
+    data_list = []
+    for i in range(0, total_data):
+       data_list.append(serializer.data[i]['id_code_panne'])
+    for i in data_list:
+       if not i:
+          continue
+       data.append(i[0])
+
     response_data = {
         "status": "success",
         "data": data,

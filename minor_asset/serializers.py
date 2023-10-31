@@ -106,6 +106,8 @@ class InventoryIntoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_id_article(self, obj):
+        if obj.id_article.designation is None:
+            return "No found"
         return f"{obj.id_article.designation}"
 
     def get_etat(self, obj):
@@ -146,7 +148,7 @@ class InventoryOutSerializer(serializers.ModelSerializer):
     def get_id_team(self, obj):
         return f"{obj.id_team.name}"
     def get_id_inventory_into(self, obj):
-        return f"{obj.id_inventory_into}"
+        return f"{obj.id_inventory_into.id_article.designation}"
     def validate(self, data):
         # Obtenez la somme totale de la quantité pour tous les objets Movie
         total_quantity = InventoryOut.objects.filter(id_inventory_into=data['id_inventory_into']).aggregate(total=Sum('quantity'))['total']
@@ -162,8 +164,34 @@ class InventoryOutSerializerTwo(serializers.ModelSerializer):
     class Meta:
         model = InventoryOut
         fields = '__all__' 
-
         
+class InventoryOutSerializerAvailable(serializers.ModelSerializer):
+    id_inventory_into_name = serializers.SerializerMethodField()
+    id_team = serializers.SerializerMethodField()
+    id_agent = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
+    etat = serializers.SerializerMethodField()
+    class Meta:
+        model = InventoryOut
+        fields = '__all__' 
+    def get_user(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name}"
+    def get_id_agent(self, obj):
+        return f"{obj.id_agent.prenom} {obj.id_agent.nom}"
+    def get_id_team(self, obj):
+        return f"{obj.id_team.name}"
+    def get_id_inventory_into_name(self, obj):
+        return f"{obj.id_inventory_into}"
+    def get_etat(self, obj):
+        # Obtenez la somme totale de la quantité pour tous les objets InventoryOut qui ont le même id_inventory_into que l'instance actuelle
+        total_quantity = InventoryOut.objects.filter(id_inventory_into=obj.id_inventory_into).aggregate(total=Sum('quantity'))['total']
+        if total_quantity is None:
+            total_quantity = 0
+        if total_quantity >= obj.quantity:
+            return "unavailable"
+        return "available"
+
+
 class TeamSerializer(serializers.ModelSerializer):
     team_name = serializers.SerializerMethodField()
     team_description = serializers.SerializerMethodField()
@@ -230,7 +258,11 @@ class WorkOrderSerializerTwo(serializers.ModelSerializer):
         model = WorkOrder
         fields = '__all__'
 
-
+class WorkOrderSerializerforDetails(serializers.ModelSerializer):
+    id_code_panne = CodePanneSerializer(many=True, read_only=True)
+    class Meta:
+        model = WorkOrder
+        fields = ['id_code_panne']
 
 class DiagnosticsSerializer(serializers.ModelSerializer):
     id_machine_name_full = serializers.SerializerMethodField()
@@ -266,7 +298,7 @@ class InventoryOutSerializerForTracking(serializers.ModelSerializer):
         fields = '__all__'  # or specify the fields you want to include
     
 class TrackingPiecesSerializerforDetails(serializers.ModelSerializer):
-    id_inventory_out = InventoryOutSerializerForTracking(many=True, read_only=True)
+    id_inventory_out = InventoryOutSerializer(many=True, read_only=True)
     class Meta:
         model = TrackingPieces
         fields = ['id_inventory_out']

@@ -41,6 +41,8 @@ urlpatterns = [
     path('get-list-inventory-unavailable/',InventoryInto_list_2),
 
     path('get-list-traking-details/<int:work_order>/',TrackingPieces_retrieve),
+    path('get-list-code-machine/<int:work_order>/',Code_panne_retrieve),
+
     path('machine-count/', MachineCountView.as_view(), name='machine-count'),
     path('categorie-machine-count/', CategorieMachineCountView.as_view(), name='machine-categorie-count'),
     path('provider_count/', ProviderCountView.as_view(), name='provider_count'),
