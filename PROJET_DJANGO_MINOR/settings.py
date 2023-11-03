@@ -87,6 +87,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'PROJET_DJANGO_MINOR.wsgi.application'
+ASGI_APPLICATION = 'examplechannels.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default' : {
+        'BACKEND' : 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts':[('127.0.0.1', 6739)]
+        }
+    }
+}
 
 
 # Database
