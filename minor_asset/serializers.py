@@ -319,7 +319,7 @@ class RemindSerializer(serializers.ModelSerializer):
     id_machine = serializers.SerializerMethodField()
     priority = serializers.SerializerMethodField()
     date_of_taking_action = serializers.SerializerMethodField()
-    time_of_taking_action = serializers.SerializerMethodField() 
+    time_of_taking_action = serializers.SerializerMethodField()
     class Meta:
         model = Remind
         fields = '__all__'
@@ -332,7 +332,32 @@ class RemindSerializer(serializers.ModelSerializer):
         return f"{obj.id_planifierMaintenance.date_of_taking_action}"
     def get_time_of_taking_action(self, obj):
         return f"{obj.id_planifierMaintenance.time_of_taking_action}"
-
+   
+class RemindSerializerForWebSockets(serializers.ModelSerializer):
+    titre = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    date_of_taking_action = serializers.SerializerMethodField()
+    time_of_taking_action = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+    class Meta:
+        model = Remind
+        fields = '__all__'
+    def get_titre(self, obj):
+        return f"Remind for maintenace machine {obj.id_planifierMaintenance.id_machine.nom}" 
+    def get_description(self, obj):
+        return f"Remind planned at {obj.id_planifierMaintenance.date_of_taking_action} with {obj.id_planifierMaintenance.priority} priority" 
+    def get_priority(self, obj):
+        return f"{obj.id_planifierMaintenance.priority}"
+    def get_date_of_taking_action(self, obj):
+        return f"{obj.id_planifierMaintenance.date_of_taking_action}"
+    def get_time_of_taking_action(self, obj):
+        return f"{obj.id_planifierMaintenance.time_of_taking_action}"
+    def get_type(self, obj):
+        return "Remind"
+    def get_application(self, obj):
+        return "Remind for plannned maintenance"
 class RemindSerializerTwo(serializers.ModelSerializer):
     id_planifierMaintenance = serializers.PrimaryKeyRelatedField(queryset=PlanifierMaintenance.objects.all())
     #id_PlanifierTeam = serializers.PrimaryKeyRelatedField(queryset=PlanifierTeam.objects.all())

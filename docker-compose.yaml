@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+ web:
+   build: .
+   command: python manage.py runserver 0.0.0.0:8000
+   volumes:
+     - .:/app
+   ports:
+     - 8000:8000
+   depends_on:
+     - db
+     - redis
+     - celery
+     - celery-beat
+ db:
+   image: postgres
+   environment:
+     - POSTGRES_DB=postgres
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=postgres
+   volumes: 
+     - /data/db:/var/lib/postgresql/data
+ redis:
+   image: redis
+ celery:
+   build: .
+   command: celery -A PROJET_DJANGO_MINOR worker --loglevel=info
+   volumes:
+     - .:/app
+   depends_on:
+     - db
+     - redis
+ celery-beat:
+   build: .
+   command: celery -A PROJET_DJANGO_MINOR beat --loglevel=info
+   volumes:
+     - .:/app
+   depends_on:
+     - db
+     - redis

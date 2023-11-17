@@ -14,15 +14,17 @@ from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
-from minor_asset.routing import ws_urlpatterns
+import minor_dash.routing 
 #from two.routing import ws_urlpatterns
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examplechannels.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'PROJET_DJANGO_MINOR.settings')
 
 application = ProtocolTypeRouter(
     {
         'http': get_asgi_application(),
-        'websocket': AllowedHostsOriginValidator(AuthMiddlewareStack(URLRouter(ws_urlpatterns))),
+        'websocket': AllowedHostsOriginValidator(AuthMiddlewareStack(URLRouter(minor_dash.routing.ws_dash_urlpatterns))),
     }
 )
+
+
 

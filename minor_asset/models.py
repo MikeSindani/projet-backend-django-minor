@@ -214,6 +214,9 @@ class PlanifierRepair(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+    def __str__(self):
+        return self.id_machine.nom
+
 
 class PlanifierMaintenance(models.Model):
     PRIORITE_CHOICES = [
@@ -233,17 +236,22 @@ class PlanifierMaintenance(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+    def __str__(self):
+        return self.id_machine.nom
 
 class PlanifierTeam(models.Model):
     id_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True)
     comments = models.TextField(null=True, blank=True)
     date_of_taking_action = models.DateField()
     time_of_taking_action = models.TimeField()
+    day = models.CharField(max_length=100,null=True, blank=True)
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+    def __str__(self):
+        return self.id_team.name
 
 class Remind(models.Model):
     id_planifierMaintenance = models.ForeignKey(PlanifierMaintenance, on_delete=models.SET_NULL, null=True)
@@ -255,6 +263,8 @@ class Remind(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+    def __str__(self):
+        return f'{self.id_planifierMaintenance} datetime_remind:{self.datetime_remind}'
     
 class RemindTeam(models.Model):
     id_PlanifierTeam = models.ForeignKey(PlanifierTeam, on_delete=models.SET_NULL, null=True,blank=True)
