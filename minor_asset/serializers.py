@@ -314,6 +314,32 @@ class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
         fields = '__all__'
     def get_id_machine(self, obj):
         return f"{obj.id_machine.nom}"
+    
+class PlanifierMaintenanceForWebSockets(serializers.ModelSerializer):
+    titre = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    date_of_taking_action = serializers.SerializerMethodField()
+    time_of_taking_action = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+    class Meta:
+        model = Remind
+        fields = '__all__'
+    def get_titre(self, obj):
+        return f"[Now][Maintenance] schedule for maintenace machine named {obj.id_machine.nom} and ID {obj.id_machine.id}" 
+    def get_description(self, obj):
+        return f"This schedule has been scheduled for {obj.date_of_taking_action} {obj.time_of_taking_action} with a {obj.priority} priority  priority" 
+    def get_priority(self, obj):
+        return f"{obj.priority}"   
+    def get_date_of_taking_action(self, obj):
+        return f"{obj.date_of_taking_action}"
+    def get_time_of_taking_action(self, obj):
+        return f"{obj.time_of_taking_action}"
+    def get_type(self, obj):
+        return "Remind"
+    def get_application(self, obj):
+        return "Planned_maintenance"
 
 class RemindSerializer(serializers.ModelSerializer):
     id_machine = serializers.SerializerMethodField()
@@ -345,9 +371,10 @@ class RemindSerializerForWebSockets(serializers.ModelSerializer):
         model = Remind
         fields = '__all__'
     def get_titre(self, obj):
-        return f"Remind for maintenace machine {obj.id_planifierMaintenance.id_machine.nom}" 
+        return f"[At {obj.day} Hour][Maintenance] schedule for maintenace machine named {obj.id_planifierMaintenance.id_machine.nom} and ID {obj.id_planifierMaintenance.id_machine.id}" 
     def get_description(self, obj):
-        return f"Remind planned at {obj.id_planifierMaintenance.date_of_taking_action} with {obj.id_planifierMaintenance.priority} priority" 
+         return f"This schedule has been scheduled for {obj.id_planifierMaintenance.date_of_taking_action} {obj.id_planifierMaintenance.time_of_taking_action} with a {obj.id_planifierMaintenance.priority}  priority" 
+        
     def get_priority(self, obj):
         return f"{obj.id_planifierMaintenance.priority}"
     def get_date_of_taking_action(self, obj):
@@ -357,7 +384,8 @@ class RemindSerializerForWebSockets(serializers.ModelSerializer):
     def get_type(self, obj):
         return "Remind"
     def get_application(self, obj):
-        return "Remind for plannned maintenance"
+        return "Remind_Maintenance"
+    
 class RemindSerializerTwo(serializers.ModelSerializer):
     id_planifierMaintenance = serializers.PrimaryKeyRelatedField(queryset=PlanifierMaintenance.objects.all())
     #id_PlanifierTeam = serializers.PrimaryKeyRelatedField(queryset=PlanifierTeam.objects.all())
@@ -377,11 +405,54 @@ class PlanifierRepairSerializerTwo(serializers.ModelSerializer):
     class Meta:
         model = PlanifierRepair
         fields = '__all__'
+class PlanifierRepairSerializerForWebSockets(serializers.ModelSerializer):
+    titre = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+    class Meta:
+        model = PlanifierRepair
+        fields = '__all__'
+    def get_titre(self, obj):
+        return f"[Now][Repair] schedule for repair machine name {obj.id_machine.nom} and ID {obj.id_machine.id}" 
+    def get_description(self, obj):
+        return f"breakdown_description:{obj.breakdown_description} target running at {obj.target_running_date}{obj.target_running_time}with a {obj.priority} priority" 
+    def get_priority(self, obj):
+        return f"{obj.priority}"
+    def get_type(self, obj):
+        return "Planned"
+    def get_application(self, obj):
+        return "planned_repair"
    
 class RemindRepairSerializer(serializers.ModelSerializer):
         class Meta:
             model = RemindRepair
             fields = '__all__'
+class RemindRepairSerializerForWebSockets(serializers.ModelSerializer):
+    titre = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    date_of_taking_action = serializers.SerializerMethodField()
+    time_of_taking_action = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+    class Meta:
+        model = RemindRepair
+        fields = '__all__'
+    def get_titre(self, obj):
+        return f"[At {obj.day} Hour][Repair] Callback for repair machine named {obj.id_PlanifierRepair.id_machine.nom} and id{obj.id_PlanifierRepair.id_machine.id}" 
+    def get_description(self, obj):
+        return f"This schedule has been scheduled for {obj.id_PlanifierRepair.date_of_taking_action} {obj.id_PlanifierRepair.time_of_taking_action} with a {obj.id_PlanifierRepair.priority} priority" 
+    def get_priority(self, obj):
+        return f"{obj.id_PlanifierRepair.priority}"
+    def get_date_of_taking_action(self, obj):
+        return f"{obj.id_PlanifierRepair.date_of_taking_action}"
+    def get_time_of_taking_action(self, obj):
+        return f"{obj.id_PlanifierRepair.time_of_taking_action}"
+    def get_type(self, obj):
+        return "Remind"
+    def get_application(self, obj):
+        return "Remind_repair"
 
 class PlanifierTeamSerializerTwo(serializers.ModelSerializer):
     id_team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.all())
@@ -417,7 +488,68 @@ class PlanifierTeamSerializer(serializers.ModelSerializer):
         except:
             return f"No name found"
         
+class PlanifierTeamForWebSockets(serializers.ModelSerializer):
+    titre = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    date_of_taking_action = serializers.SerializerMethodField()
+    time_of_taking_action = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+    team_supervisor = serializers.SerializerMethodField()
+    team_assitance = serializers.SerializerMethodField()
+    class Meta:
+        model = Remind
+        fields = '__all__'
+    def get_titre(self, obj):
+        return f"[Now][Team] schedule for team name {obj.id_team.name} and ID {obj.id_team.id}" 
+    def get_description(self, obj):
+        name_supervisor = ""
+        name_ajoint = ''
+        try:
+            agent = Agent.objects.filter(team=obj.id_team.id,isSupervisor=True)[0]
+            name_supervisor = f"{agent.nom}  {agent.prenom}"
+        except:
+            name_supervisor = f"no name found"
 
+        try:
+            agent = Agent.objects.filter(team=obj.id_team.id,isAssistant=True)[0]
+            name_ajoint = f"{agent.nom}  {agent.prenom}"
+        except:
+            name_ajoint = f"No name found"
+        
+        if obj.day == "1000":
+            return f"This schedule has been scheduled for {obj.date_of_taking_action} {obj.time_of_taking_action} with supervisor name: {name_supervisor} and ajoint {name_ajoint}."
+        if obj.day != "1000":
+            return f"This schedule has been scheduled for {obj.day} with supervisor name: {name_supervisor} and ajoint {name_ajoint}."
+         
+    def get_priority(self, obj):
+        return f"normal"   
+    def get_date_of_taking_action(self, obj):
+        return f"{obj.date_of_taking_action}"
+    def get_time_of_taking_action(self, obj):
+        return f"{obj.time_of_taking_action}"
+    def get_type(self, obj):
+        return "Remind"
+    def get_application(self, obj):
+        return "Planned_team"
+    def get_team_description (self, obj):
+        return f"{obj.id_team.description}" 
+    def get_team_supervisor(self, obj):
+
+        try:
+            agent = Agent.objects.filter(team=obj.id_team.id,isSupervisor=True)[0]
+            return f"{agent.nom}  {agent.prenom}"
+        except:
+            return f"no name found"
+        
+
+    def get_team_assitance(self, obj):
+        try:
+            agent = Agent.objects.filter(team=obj.id_team.id,isAssistant=True)[0]
+            return f"{agent.nom}  {agent.prenom}"
+        except:
+            return f"No name found"
 
 class RemindTeamSerializer(serializers.ModelSerializer):
     id_PlanifierTeam = serializers.PrimaryKeyRelatedField(queryset=PlanifierTeam.objects.all())

@@ -5,7 +5,7 @@ os.environ.setdefault ('DJANGO_SETTINGS_MODULE', 'PROJET_DJANGO_MINOR.settings')
 app = Celery('PROJET_DJANGO_MINOR')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.enable_utc = False
-app.conf.update(timezone = 'Asia/Kolkata')
+app.conf.update(timezone = 'Europe/Athens')
 # Retry settings
 app.conf.broker_connection_retry_on_startup = True
 # Celery Beat Settings
@@ -17,7 +17,7 @@ def debug_task(self):
 app.conf.beat_schedule = {
        'check-every-second': {
            'task': 'minor_dash.tasks.verify_and_send_data',
-           'schedule': 3.0,
+           'schedule': 20.0,
 },}
 
 

@@ -270,6 +270,7 @@ class RemindTeam(models.Model):
     id_PlanifierTeam = models.ForeignKey(PlanifierTeam, on_delete=models.SET_NULL, null=True,blank=True)
     datetime_remind = models.DateTimeField(null=True, blank=True)
     day = models.CharField(max_length=100,null=True, blank=True)
+    hours = models.CharField(max_length=100,null=True, blank=True)
 
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
