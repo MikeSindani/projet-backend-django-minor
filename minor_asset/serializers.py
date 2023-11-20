@@ -323,6 +323,7 @@ class PlanifierMaintenanceForWebSockets(serializers.ModelSerializer):
     time_of_taking_action = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     application = serializers.SerializerMethodField()
+    genre = serializers.SerializerMethodField()
     class Meta:
         model = Remind
         fields = '__all__'
@@ -337,9 +338,12 @@ class PlanifierMaintenanceForWebSockets(serializers.ModelSerializer):
     def get_time_of_taking_action(self, obj):
         return f"{obj.time_of_taking_action}"
     def get_type(self, obj):
-        return "Remind"
+        return "Planned"
     def get_application(self, obj):
-        return "Planned_maintenance"
+        return "Asset"
+    def get_genre(self, obj):
+        return "Maintenance"
+    
 
 class RemindSerializer(serializers.ModelSerializer):
     id_machine = serializers.SerializerMethodField()
@@ -367,6 +371,7 @@ class RemindSerializerForWebSockets(serializers.ModelSerializer):
     time_of_taking_action = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     application = serializers.SerializerMethodField()
+    genre = serializers.SerializerMethodField()
     class Meta:
         model = Remind
         fields = '__all__'
@@ -384,7 +389,9 @@ class RemindSerializerForWebSockets(serializers.ModelSerializer):
     def get_type(self, obj):
         return "Remind"
     def get_application(self, obj):
-        return "Remind_Maintenance"
+        return "Asset"
+    def get_genre(self, obj):
+        return "Maintenance"
     
 class RemindSerializerTwo(serializers.ModelSerializer):
     id_planifierMaintenance = serializers.PrimaryKeyRelatedField(queryset=PlanifierMaintenance.objects.all())
@@ -410,6 +417,7 @@ class PlanifierRepairSerializerForWebSockets(serializers.ModelSerializer):
     description = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     application = serializers.SerializerMethodField()
+    genre = serializers.SerializerMethodField()
     class Meta:
         model = PlanifierRepair
         fields = '__all__'
@@ -422,7 +430,10 @@ class PlanifierRepairSerializerForWebSockets(serializers.ModelSerializer):
     def get_type(self, obj):
         return "Planned"
     def get_application(self, obj):
-        return "planned_repair"
+        return "Asset"
+    def get_genre(self, obj):
+        return "Repair"
+    
    
 class RemindRepairSerializer(serializers.ModelSerializer):
         class Meta:
@@ -436,6 +447,7 @@ class RemindRepairSerializerForWebSockets(serializers.ModelSerializer):
     time_of_taking_action = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     application = serializers.SerializerMethodField()
+    genre = serializers.SerializerMethodField()
     class Meta:
         model = RemindRepair
         fields = '__all__'
@@ -452,7 +464,9 @@ class RemindRepairSerializerForWebSockets(serializers.ModelSerializer):
     def get_type(self, obj):
         return "Remind"
     def get_application(self, obj):
-        return "Remind_repair"
+        return "Asset"
+    def get_genre(self, obj):
+        return "Repair"
 
 class PlanifierTeamSerializerTwo(serializers.ModelSerializer):
     id_team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.all())
@@ -496,10 +510,11 @@ class PlanifierTeamForWebSockets(serializers.ModelSerializer):
     time_of_taking_action = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     application = serializers.SerializerMethodField()
+    genre = serializers.SerializerMethodField()
     team_supervisor = serializers.SerializerMethodField()
     team_assitance = serializers.SerializerMethodField()
     class Meta:
-        model = Remind
+        model = PlanifierTeam
         fields = '__all__'
     def get_titre(self, obj):
         return f"[Now][Team] schedule for team name {obj.id_team.name} and ID {obj.id_team.id}" 
@@ -530,9 +545,11 @@ class PlanifierTeamForWebSockets(serializers.ModelSerializer):
     def get_time_of_taking_action(self, obj):
         return f"{obj.time_of_taking_action}"
     def get_type(self, obj):
-        return "Remind"
+        return "Planned"
+    def get_genre(self, obj):
+        return "Team"
     def get_application(self, obj):
-        return "Planned_team"
+        return "Asset"
     def get_team_description (self, obj):
         return f"{obj.id_team.description}" 
     def get_team_supervisor(self, obj):
@@ -562,6 +579,7 @@ class RemindTeamSerializerSpecialGet(serializers.ModelSerializer):
     team_description = serializers.SerializerMethodField()
     team_supervisor = serializers.SerializerMethodField()
     team_assitance = serializers.SerializerMethodField()
+
     class Meta:
         model = RemindTeam
         fields = '__all__'
@@ -586,3 +604,84 @@ class RemindTeamSerializerSpecialGet(serializers.ModelSerializer):
             return f"No name found"
         return f"{agent.nom}  {agent.prenom}"
     
+    
+
+class RemindTeamForWebSockets(serializers.ModelSerializer):
+    titre = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    date_of_taking_action = serializers.SerializerMethodField()
+    time_of_taking_action = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    genre = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+    team_supervisor = serializers.SerializerMethodField()
+    team_assitance = serializers.SerializerMethodField()
+    class Meta:
+        model = RemindTeam
+        fields = '__all__'
+    def get_titre(self, obj):
+        return f"[At {obj.hours} Hour][Team] schedule for team name {obj.id_PlanifierTeam.id_team.name} and ID {obj.id_PlanifierTeam.id_team.id}" 
+    def get_description(self, obj):
+        name_supervisor = ""
+        name_ajoint = ''
+        try:
+            agent = Agent.objects.filter(team=obj.id_PlanifierTeam.id_team.id,isSupervisor=True)[0]
+            name_supervisor = f"{agent.nom}  {agent.prenom}"
+        except:
+            name_supervisor = f"no name found"
+
+        try:
+            agent = Agent.objects.filter(team=obj.id_PlanifierTeam.id_team.id,isAssistant=True)[0]
+            name_ajoint = f"{agent.nom}  {agent.prenom}"
+        except:
+            name_ajoint = f"No name found"
+        
+        if obj.day == "1000":
+            return f"This schedule has been scheduled for {obj.id_PlanifierTeam.date_of_taking_action} {obj.id_PlanifierTeam.time_of_taking_action} with supervisor name: {name_supervisor} and ajoint {name_ajoint}."
+        if obj.day != "1000":
+            return f"This schedule has been scheduled for {obj.id_PlanifierTeam.day} with supervisor name: {name_supervisor} and ajoint {name_ajoint}."
+    def get_date_of_taking_action(self, obj):
+        return f"{obj.id_team.date_of_taking_action}"
+    def get_time_of_taking_action(self, obj):
+        return f"{obj.id_team.time_of_taking_action}"
+    def get_type(self, obj):
+            return "Remind"
+    def get_application(self, obj):
+            return "Asset"
+    def get_genre(self, obj):
+        return "Team"
+         
+
+class InventorySerializerForWebSockets(serializers.ModelSerializer):
+    etat = serializers.SerializerMethodField()
+    titre = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    application = serializers.SerializerMethodField()
+    genre = serializers.SerializerMethodField()
+    class Meta:
+        model = InventoryInto
+        fields = '__all__' 
+    def get_titre(self, obj):
+        return f"[unavailable][Stock] schedule for stock product  ID {obj.id_article.id} and NAME {obj.id_article.designation} " 
+    def get_description(self, obj):
+        return f"Be sure to replace the product as it is finished in the stock" 
+        
+    def get_priority(self, obj):
+        return f"normal"  
+    def get_type(self, obj):
+            return "Stock"
+    def get_application(self, obj):
+            return "Asset"
+    def get_etat(self, obj):
+        # Obtenez la somme totale de la quantité pour tous les objets InventoryOut qui ont le même id_inventory_into que l'instance actuelle
+        total_quantity = InventoryOut.objects.filter(id_inventory_into=obj.id).aggregate(total=Sum('quantity'))['total']
+        if total_quantity is None:
+            total_quantity = 0
+        if total_quantity >= obj.quantity:
+            return "unavailable"
+        return "available"
+    def get_genre(self, obj):
+        return "Into"

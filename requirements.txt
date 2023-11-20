@@ -18,3 +18,4 @@ dj-database-url
 django-filter
 djangorestframework-simplejwt
 psycopg2
+signal

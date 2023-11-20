@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from minor_asset.models import Remind,RemindRepair,PlanifierRepair,PlanifierMaintenance,PlanifierTeam
+from minor_asset.models import Remind,RemindRepair,PlanifierRepair,PlanifierMaintenance,PlanifierTeam,RemindTeam
 from django.shortcuts import get_list_or_404
 from minor_asset.serializers import RemindSerializerForWebSockets,RemindRepairSerializerForWebSockets,PlanifierRepairSerializerForWebSockets,PlanifierMaintenanceForWebSockets,PlanifierTeamForWebSockets
 
@@ -76,8 +76,8 @@ def verify_and_send_data():
         print("models to send remind repair")
         send_data_to_channels(models_to_send_planned_repair)
 
-    planned_repair = PlanifierMaintenance.objects.filter(date_of_taking_action__icontains=formatted_date,time_of_taking_action__icontains=formatted_time)
-    serializer = PlanifierMaintenanceForWebSockets(planned_repair, many=True)
+    planned_maintenance = PlanifierMaintenance.objects.filter(date_of_taking_action__icontains=formatted_date,time_of_taking_action__icontains=formatted_time)
+    serializer = PlanifierMaintenanceForWebSockets(planned_maintenance, many=True)
     models_to_send_planned_maintenance = serializer.data
 
     print(models_to_send_planned_maintenance)
@@ -90,12 +90,17 @@ def verify_and_send_data():
     # FOR PLANNED TEAM 
     planned_team_every_day = PlanifierTeam.objects.filter(day=day_of_week,time_of_taking_action__icontains=formatted_time)
     planned_team_every_day_1 = PlanifierTeam.objects.filter(day='1000',date_of_taking_action__icontains=formatted_date,time_of_taking_action__icontains=formatted_time)
+    planned_team_every_day_2 = RemindTeam.objects.filter(datetime_remind__icontains=formatted_datetime)
     serializer = PlanifierTeamForWebSockets(planned_team_every_day, many=True)
     serializer_1 = PlanifierTeamForWebSockets(planned_team_every_day_1, many=True)
+    serializer_2 = PlanifierTeamForWebSockets(planned_team_every_day_2, many=True)
     models_to_send_planned_team_every_day = serializer.data
     models_to_send_planned_team_every_day_1 = serializer_1.data
+    models_to_send_planned_team_every_day_2 = serializer_2.data
 
     print(models_to_send_planned_team_every_day)
+    print(models_to_send_planned_team_every_day_1)
+    print(models_to_send_planned_team_every_day_2)
 
     # Send the models to the group
     if models_to_send_planned_team_every_day:
@@ -105,6 +110,9 @@ def verify_and_send_data():
     if models_to_send_planned_team_every_day_1:
         print("models to send remind team date")
         send_data_to_channels(models_to_send_planned_team_every_day_1)
+    if models_to_send_planned_team_every_day_2:
+        print("models to send remind team date")
+        send_data_to_channels(models_to_send_planned_team_every_day_2)
 
     
        
