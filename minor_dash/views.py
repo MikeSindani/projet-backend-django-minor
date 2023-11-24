@@ -35,8 +35,7 @@ def Statistique_total_stock_int_retrieve(request):
 
 # Supposons que vous ayez un modèle Article avec une date de création
     total_articles = InventoryInto.objects.filter(
-    date_creation__year=2023).annotate(
-    month=ExtractMonth('date_creation'),).values('month').annotate(total=Count('quantity')).order_by('month')
+    date_creation__year=2023).annotate(month=ExtractMonth('date_creation'),).values('month').annotate(total=Count('quantity')).order_by('month')
     print(total_articles)
     serializer = ArticleSerializer(total_articles, many=True)
     data = serializer.data
