@@ -23,6 +23,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/asset/', include('minor_asset.urls')),
+    path('api/dash/', include('minor_dash.urls')),
     path('api/auth/',obtain_auth_token),
     path('api/',include('users.urls')),
 ]

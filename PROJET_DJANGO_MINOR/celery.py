@@ -14,11 +14,11 @@ app.autodiscover_tasks()
 def debug_task(self):
     print(f'Request: {self.request!r}')
 
-app.conf.beat_schedule = {
+'''app.conf.beat_schedule = {
        'check-every-second': {
            'task': 'minor_dash.tasks.verify_and_send_data',
            'schedule': 20.0,
-},}
+},}'''
 
 
 '''@app.on_after_configure.connect
