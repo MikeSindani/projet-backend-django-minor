@@ -10,6 +10,7 @@ class CategorieMachineSerializer(serializers.ModelSerializer):
         fields = ["id",'nom', 'description', 'date_creation', 'time_created', 'date_modification', 'time_modified'] 
 
 
+
 class MachineSerializer(serializers.ModelSerializer):
     categorie = serializers.SerializerMethodField()
     categorie_desc = serializers.SerializerMethodField()

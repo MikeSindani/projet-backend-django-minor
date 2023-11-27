@@ -32,6 +32,7 @@ router.register(r'remind_teams', RemindTeamViewSet)
 
 
 
+
 urlpatterns = [
     path('get-reminds/<int:id_planifierMaintenance>/', remind_retrieve),
     path('get-reminds-repair/<int:id_planifierRepair>/', remind_repair_retrieve),

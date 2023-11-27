@@ -1,3 +1,4 @@
+from .models import Setting
 from rest_framework import serializers
 from minor_asset.models import *
 from users.models import *
@@ -66,3 +67,9 @@ class CalendreYearListSerializer(serializers.ModelSerializer):
            'value': instance['year'],
            'label': f"{instance['year']}",
       }
+      
+
+class SettingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Setting
+        fields = '__all__'

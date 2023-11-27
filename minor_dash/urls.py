@@ -4,6 +4,13 @@ from rest_framework.routers import DefaultRouter
 from .views import *
 from django.urls  import include
 
+from rest_framework.routers import DefaultRouter
+
+
+router = DefaultRouter()
+router.register(r'settings', SettingViewSet)
+
+
 urlpatterns = [
     # Urls des differentes entrées
     #  
@@ -30,4 +37,5 @@ urlpatterns = [
     path('get-statistique_stock_out_month_category/<int:year>/<str:category>/', Statistique_total_stock_out_retrieve_month_category),
     path('get-statistique_stock_out_year_category/<str:category>/', Statistique_total_stock_out_retrieve_year_category),
     path('get-statistique_stock_out_day_category/<int:year>/<int:month>/<str:category>/', Statistique_total_stock_out_retrieve_day_category),
+    path('', include(router.urls)),
 ]
