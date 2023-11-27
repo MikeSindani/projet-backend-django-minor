@@ -132,7 +132,6 @@ class Inventory(models.Model):
     designation = models.CharField(max_length=250,null=True,blank=True)
     unit = models.CharField(max_length=20,null=True, blank=True)
     capacity = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
-
     price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     price_used_by_entreprise = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     currency = models.CharField(max_length=20,null=True, blank=True)
@@ -176,6 +175,9 @@ class InventoryInto(models.Model):
     time_modified = models.TimeField(auto_now=True)
     # on verfier si la quantite est plein on met a true
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
+
+    def __str__(self) -> str:
+        return self.id_article.designation + "---" + str(self.date_creation)
     
 class InventoryOut(models.Model):
     quantity = models.IntegerField()
@@ -192,6 +194,9 @@ class InventoryOut(models.Model):
     time_modified = models.TimeField(auto_now=True)
     # on verfier si la quantite est plein on met a true
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
+
+    def __str__(self) -> str:
+        return self.id_inventory_into.id_article.designation + "---" + str(self.date_creation)
 
 class PlanifierRepair(models.Model):
     PRIORITE_CHOICES = [

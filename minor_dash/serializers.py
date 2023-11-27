@@ -35,6 +35,8 @@ class ArticleSerializerDay(serializers.ModelSerializer):
       }
 
 
+
+
 class CalendreDaysListSerializer(serializers.ModelSerializer):
   day = serializers.DateField()
   def to_representation(self, instance):
