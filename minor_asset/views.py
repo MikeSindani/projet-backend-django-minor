@@ -1933,6 +1933,23 @@ def Code_panne_retrieve(request, work_order):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+def Inventory_list(request):
+    inventory = Inventory.objects.all().values('designation').distinct()
+    serializer = InventorySerializer(inventory, many=True)
+    print(serializer.data)
+    total_data = len(serializer.data)
+    data = serializer.data
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
 
 
 

@@ -39,6 +39,7 @@ urlpatterns = [
     path('get-reminds-team/<int:id_PlanifierTeam>/', remind_team_retrieve),
     path('get-team/<int:team>/',team_retrieve),
     path('get-list-inventory/',InventoryInto_list),
+    path('get-list-article/',Inventory_list),
     path('get-list-inventory-unavailable/',InventoryInto_list_2),
 
     path('get-list-traking-details/<int:work_order>/',TrackingPieces_retrieve),

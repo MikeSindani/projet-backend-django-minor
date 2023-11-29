@@ -19,3 +19,4 @@ django-filter
 djangorestframework-simplejwt
 psycopg2
 scipy
+django-rest-swagger

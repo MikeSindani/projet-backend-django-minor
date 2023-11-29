@@ -4,16 +4,17 @@ from rest_framework.routers import DefaultRouter
 from .views import *
 from django.urls  import include
 
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import DefaultRouter, SimpleRouter
 
 
-router = DefaultRouter()
-router.register(r'settings', SettingViewSet)
+router = SimpleRouter()
+router.register('settings', SettingViewSet, basename='settings')
 
 
 urlpatterns = [
     # Urls des differentes entrées
     #  
+    path('', include(router.urls)),
     path('get-statistique_stock_int_month/<int:year>/', Statistique_total_stock_int_retrieve_month),
     path('get-statistique_stock_int_year/', Statistique_total_stock_int_retrieve_year),
     path('get-statistique_stock_int_day/<int:year>/<int:month>/', Statistique_total_stock_int_retrieve_day),
@@ -37,5 +38,5 @@ urlpatterns = [
     path('get-statistique_stock_out_month_category/<int:year>/<str:category>/', Statistique_total_stock_out_retrieve_month_category),
     path('get-statistique_stock_out_year_category/<str:category>/', Statistique_total_stock_out_retrieve_year_category),
     path('get-statistique_stock_out_day_category/<int:year>/<int:month>/<str:category>/', Statistique_total_stock_out_retrieve_day_category),
-    path('', include(router.urls)),
+    
 ]
