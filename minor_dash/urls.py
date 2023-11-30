@@ -50,6 +50,20 @@ urlpatterns = [
     path('get-statistique_price_stock_int_month_category/<int:year>/<str:category>/', Statistique_price_stock_int_retrieve_month_category),
     path('get-statistique_price_stock_int_year_category/<str:category>/', Statistique_price_stock_int_retrieve_year_category),
     path('get-statistique_price_stock_int_day_category/<int:year>/<int:month>/<str:category>/', Statistique_price_stock_int_retrieve_day_category),
+
+    
+    # Par litre
+   
+    path('get-statistique_littre_stock_int_month/<int:year>/', Statistique_littre_stock_int_retrieve_month),
+    path('get-statistique_littre_stock_int_year/', Statistique_littre_stock_int_retrieve_year),
+    path('get-statistique_littre_stock_int_day/<int:year>/<int:month>/', Statistique_littre_stock_int_retrieve_day),
+    path('get-statistique_littre_stock_int_month_article/<int:year>/<str:article>/', Statistique_littre_stock_int_retrieve_month_article),
+    path('get-statistique_littre_stock_int_year_article/<str:article>/', Statistique_littre_stock_int_retrieve_year_article),
+    path('get-statistique_littre_stock_int_day_article/<int:year>/<int:month>/<str:article>/', Statistique_littre_stock_int_retrieve_day_article),
+    path('get-statistique_littre_stock_int_month_category/<int:year>/<str:category>/', Statistique_littre_stock_int_retrieve_month_category),
+    path('get-statistique_littre_stock_int_year_category/<str:category>/', Statistique_littre_stock_int_retrieve_year_category),
+    path('get-statistique_littre_stock_int_day_category/<int:year>/<int:month>/<str:category>/', Statistique_littre_stock_int_retrieve_day_category),
+
     
     
     
@@ -88,6 +102,18 @@ urlpatterns = [
     path('get-statistique_price_stock_out_month_category/<int:year>/<str:category>/', Statistique_price_stock_out_retrieve_month_category),
     path('get-statistique_price_stock_out_year_category/<str:category>/', Statistique_price_stock_out_retrieve_year_category),
     path('get-statistique_price_stock_out_day_category/<int:year>/<int:month>/<str:category>/', Statistique_price_stock_out_retrieve_day_category),
+    
+    
+    #Par littre
+    path('get-statistique_littre_stock_out_month/<int:year>/', Statistique_littre_stock_out_retrieve_month),
+    path('get-statistique_littre_stock_out_year/', Statistique_littre_stock_out_retrieve_year),
+    path('get-statistique_littre_stock_out_day/<int:year>/<int:month>/', Statistique_littre_stock_out_retrieve_day),
+    path('get-statistique_littre_stock_out_month_category/<int:year>/<str:category>/', Statistique_littre_stock_out_retrieve_month_category),
+    path('get-statistique_littre_stock_out_year_category/<str:category>/', Statistique_littre_stock_out_retrieve_year_category),
+    path('get-statistique_littre_stock_out_day_category/<int:year>/<int:month>/<str:category>/', Statistique_littre_stock_out_retrieve_day_category),
+    path('get-statistique_littre_stock_out_month_article/<int:year>/<str:article>/', Statistique_littre_stock_out_retrieve_month_article),
+    path('get-statistique_littre_stock_out_year_article/<str:article>/', Statistique_littre_stock_out_retrieve_year_article),
+    path('get-statistique_littre_stock_out_day_article/<int:year>/<int:month>/<str:article>/', Statistique_littre_stock_out_retrieve_day_article),
     
     
 ]
