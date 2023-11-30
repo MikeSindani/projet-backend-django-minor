@@ -164,6 +164,8 @@ class InventoryInto(models.Model):
 
     price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     price_used_by_entreprise = models.DecimalField(max_digits=5, decimal_places=3,null=True, blank=True)
+    price_unit = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True)
+    price_unit_used_by_entreprise = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True)
     currency = models.CharField(max_length=20,null=True, blank=True)
     rate = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     currency_used_by_entreprise = models.CharField(max_length=20,null=True, blank=True)
