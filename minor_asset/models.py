@@ -179,6 +179,7 @@ class InventoryInto(models.Model):
     def __str__(self) -> str:
         return self.id_article.designation + "---" + str(self.date_creation)
     
+    
 class InventoryOut(models.Model):
     quantity = models.IntegerField()
     id_inventory_into = models.ForeignKey("InventoryInto", on_delete=models.SET_NULL, null=True)
@@ -197,6 +198,7 @@ class InventoryOut(models.Model):
 
     def __str__(self) -> str:
         return self.id_inventory_into.id_article.designation + "---" + str(self.date_creation)
+    
 
 class PlanifierRepair(models.Model):
     PRIORITE_CHOICES = [

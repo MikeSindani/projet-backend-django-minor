@@ -1935,7 +1935,7 @@ def Code_panne_retrieve(request, work_order):
 
 @api_view(['GET'])
 def Inventory_list(request):
-    inventory = Inventory.objects.all().values('designation').distinct()
+    inventory = Inventory.objects.all().values('id', 'designation').distinct()
     serializer = InventorySerializer(inventory, many=True)
     print(serializer.data)
     total_data = len(serializer.data)

@@ -65,5 +65,36 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
 
 
+class ContentConsumer(AsyncWebsocketConsumer):
+    
+    async def connect(self):
+        await self.channel_layer.group_add("Content", self.channel_name) # nom du groupe
+      # Accept the connection
+        await self.accept() # code qui accepte la connection.
+      # Fetch data from the InventoryInto database
+       
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard("Content", self.channel_name)# nom du groupe a change 
+        '''await self.send(text_data=json.dumps({
+          'message': 'You are now disconnected.'
+        }))'''
+
+    async def receive(self, text_data):
+        print(text_data)
+        text_data_json = json.loads(text_data)
+        message = text_data_json['message']
+        print(message)
+        await self.send(text_data=json.dumps({
+          'message': message
+        }))
+
+    async def send_data(self, event):
+      print("send_data")
+      message = event['message']
+      await self.send(text_data=json.dumps({
+          'message': message
+      }))
+
+
  
            

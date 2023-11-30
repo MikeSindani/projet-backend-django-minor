@@ -53,7 +53,11 @@ def Statistique_total_stock_int_retrieve_month(request, year):
         "count": total_data,
         "message": "Data retrieved successfully"
     }
+    
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+
 
 
 @api_view(['GET'])
@@ -178,6 +182,96 @@ def Statistique_total_stock_int_retrieve_day_article(request, year, month, artic
 #   
 
 @api_view(['GET'])
+def Statistique_total_category_stock_int_retrieve_month(request, year):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    entries = InventoryInto.objects.filter(date_creation__year=year).annotate(month=ExtractMonth('date_creation'),).values('month','id_article__id_category__name').annotate(total=Count('id'))
+
+        # Formater les données dans le format souhaité
+    result = {}
+    print(entries)
+    for entry in entries:
+        category = entry['id_article__id_category__name']
+        month = entry['month']
+        total = entry['total']
+        if category not in result:
+            result[category] = [{'month': month, 'total': total}]
+            
+        elif category in result:
+            result[category] += [{'month': month, 'total': total}]
+            #result[category]['total'] += total
+            
+    response_data = {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "message": "Data retrieved successfully"
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+@api_view(['GET'])
+def Statistique_total_category_stock_int_retrieve_year(request):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    entries = InventoryInto.objects.all().annotate(year=ExtractYear('date_creation'),).values('year','id_article__id_category__name').annotate(total=Count('id'))
+
+        # Formater les données dans le format souhaité
+    result = {}
+    print(entries)
+    for entry in entries:
+        category = entry['id_article__id_category__name']
+        year = entry['year']
+        total = entry['total']
+        if category not in result:
+            result[category] = [{'year': year, 'total': total}]
+            
+        elif category in result:
+            result[category] += [{'year': year, 'total': total}]
+            #result[category]['total'] += total
+            
+    response_data = {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "message": "Data retrieved successfully"
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_total_category_stock_int_retrieve_day(request, year, month):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    entries = InventoryInto.objects.filter(date_creation__year=year, date_creation__month=month).annotate(day=ExtractDay('date_creation'),).values('day','id_article__id_category__name').annotate(total=Count('id'))
+
+        # Formater les données dans le format souhaité
+    result = {}
+    for entry in entries:
+        category = entry['id_article__id_category__name']
+        day = entry['day']
+        total = entry['total']
+        if category not in result:
+            result[category] = [{'day': day, 'total': total}]
+            
+        elif category in result:
+            result[category] += [{'day': day, 'total': total}]
+            #result[category]['total'] += total
+            
+    response_data = {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "message": "Data retrieved successfully"
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
 def Statistique_total_stock_int_retrieve_month_category(request, year, category):
 
 # Supposons que vous ayez un modèle Article avec une date de création
@@ -198,6 +292,9 @@ def Statistique_total_stock_int_retrieve_month_category(request, year, category)
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+
+
+
 @api_view(['GET'])
 def Statistique_total_stock_int_retrieve_year_category(request, category):
 
@@ -215,6 +312,7 @@ def Statistique_total_stock_int_retrieve_year_category(request, category):
         "message": "Data retrieved successfully"
     }
     return Response(response_data, status=status.HTTP_200_OK)
+
 
 
 @api_view(['GET'])
@@ -322,6 +420,314 @@ def Statistique_calendre_retrieve_year_and_month(request,filter_by,year):
             "message": "Data retrieved successfully"
         }
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+
+# ---------------------------------------------------------------- Pour les prix
+# Ces vues retournes les nombre des differentes entrées seulement chronologiquement(Year, Month, Day)  
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_month(request, year):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.filter(
+    date_creation__year=2023).annotate(
+    month=ExtractMonth('date_creation')).values('month', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('month')
+    serializer = ArticlePriceSerializer(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_year(request):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.all().annotate(year=ExtractYear('date_creation'),).values('year', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('year')
+    serializer = ArticlePriceSerializerYear(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_day(request, year, month):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.filter(
+    date_creation__year=year, date_creation__month=month).annotate(
+    day=ExtractDay('date_creation'),).values('day', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('day')
+    print(total_articles)
+    serializer = ArticlePriceSerializerDay(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+################################################################ Pour les prix
+# Ces vues retournes les nombre des differentes entrées chronologiquement et par article
+# 
+# 
+# 
+# 
+# 
+#   
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_month_article(request, year, article):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.filter(
+    date_creation__year=year, id_article__designation=article).annotate(
+    month=ExtractMonth('date_creation'),).values('month', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('month')
+    print(total_articles)
+    serializer = ArticlePriceSerializer(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_year_article(request, article):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.filter(id_article__designation=article).annotate(year=ExtractYear('date_creation'),).values('year', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('year')
+    print(total_articles)
+    serializer = ArticlePriceSerializerYear(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_day_article(request, year, month, article):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.filter(
+    date_creation__year=year, date_creation__month=month, id_article__designation=article).annotate(
+    day=ExtractDay('date_creation'),).values('day', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('day')
+    print(total_articles)
+    serializer = ArticlePriceSerializerDay(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+################################################################ Pour les prix
+
+# Ces vues retournes les nombre des differentes entrées chronologiquement et par catégorie
+# 
+# 
+# 
+# 
+# 
+#   
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_month_category(request, year, category):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.filter(
+    date_creation__year=year, id_article__id_category__name=category).annotate(
+    month=ExtractMonth('date_creation'),).values('month', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('month')
+    print(total_articles)
+    serializer = ArticlePriceSerializer(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_year_category(request, category):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryInto.objects.filter(id_article__id_category__name=category).annotate(year=ExtractYear('date_creation'),).values('year', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('year')
+    print(total_articles)
+    serializer = ArticlePriceSerializerYear(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+@api_view(['GET'])
+def Statistique_price_stock_int_retrieve_day_category(request, year, month, category):
+    total_articles = InventoryInto.objects.filter(
+    date_creation__year=year, date_creation__month=month, id_article__id_category__name=category).annotate(
+    day=ExtractDay('date_creation'),).values('day', 'id_article__id_category__name').annotate(total=Sum('price')).order_by('day')
+    print(total_articles)
+    serializer = ArticlePriceSerializerDay(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+################################################################ Pour les littres
+
+
+
+
+
+
+
+
+
+
+
+@api_view(['GET'])
+def Statistique_calendre_retrieve_week_and_day(request,filter_by,year,month):
+    # Obtenez le premier jour du mois en cours
+    date = datetime.now()
+    
+    if(filter_by == "Days"):
+         # Obtenez le dernier jour du mois en cours
+        start_of_month = datetime(year=year,month=month,day=1).replace(day=1)
+        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
+        end_of_month = start_of_month.replace(day=end_of_month[1])
+        creation_days = InventoryInto.objects.filter(
+        date_creation__range=(start_of_month, end_of_month)
+        ).annotate(
+        day=ExtractDay('date_creation'),
+        ).values(
+        'day'
+        ).order_by('day').distinct()
+        print(creation_days)
+        serializer = CalendreDaysListSerializer(creation_days, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+    elif(filter_by == "Week"):
+         # Obtenez le dernier jour du mois en cours
+        start_of_month = datetime(year,month).replace(day=1)
+        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
+        end_of_month = start_of_month.replace(day=end_of_month[1])
+        creation_days = InventoryInto.objects.filter(
+        date_creation__range=(start_of_month, end_of_month)
+        ).annotate(
+        week=ExtractWeek('date_creation'),
+        ).values(
+        'week'
+        ).order_by('week').distinct()
+        print(creation_days)
+        serializer = CalendreweekListSerializer(creation_days, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_calendre_retrieve_year_and_month(request,filter_by,year):
+    if(filter_by == "Years"):
+        total_articles = InventoryInto.objects.all().annotate(year=ExtractYear('date_creation')).values('year').order_by('year').distinct()
+        print(total_articles)
+        serializer = CalendreYearListSerializer(total_articles, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"}
+    elif(filter_by == "Month"):
+        total_articles = InventoryInto.objects.filter(
+        date_creation__year=year).annotate(
+        month=ExtractMonth('date_creation'),).values('month').order_by('month').distinct()
+        print(total_articles)
+        serializer = CalendreMonthListSerializer(total_articles, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+#############
+
 
 
 
@@ -463,14 +869,96 @@ def Statistique_total_stock_out_retrieve_day_article(request, year, month, artic
 
 
 
+@api_view(['GET'])
+def Statistique_total_category_stock_out_retrieve_month(request, year):
 
-# Ces vues retournes les nombre des differentes entrées chronologiquement et par catégorie
-# 
-# 
-# 
-# 
-# 
-#   
+# Supposons que vous ayez un modèle Article avec une date de création
+    entries = InventoryOut.objects.filter(date_creation__year=year).annotate(month=ExtractMonth('date_creation'),).values('month','id_inventory_into__id_article__id_category__name').annotate(total=Count('id'))
+
+        # Formater les données dans le format souhaité
+    result = {}
+    print(entries)
+    for entry in entries:
+        category = entry['id_inventory_into__id_article__id_category__name']
+        month = entry['month']
+        total = entry['total']
+        if category not in result:
+            result[category] = [{'month': month, 'total': total}]
+            
+        elif category in result:
+            result[category] += [{'month': month, 'total': total}]
+            #result[category]['total'] += total
+    
+    response_data = {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "message": "Data retrieved successfully"
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+@api_view(['GET'])
+def Statistique_total_category_stock_out_retrieve_year(request):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    entries = InventoryOut.objects.all().annotate(year=ExtractYear('date_creation'),).values('year','id_inventory_into__id_article__id_category__name').annotate(total=Count('id'))
+
+        # Formater les données dans le format souhaité
+    result = {}
+    print(entries)
+    for entry in entries:
+        category = entry['id_inventory_into__id_article__id_category__name']
+        year = entry['year']
+        total = entry['total']
+        if category not in result:
+            result[category] = [{'year': year, 'total': total}]
+            
+        elif category in result:
+            result[category] += [{'year': year, 'total': total}]
+            #result[category]['total'] += total
+            
+    response_data = {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "message": "Data retrieved successfully"
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_total_category_stock_out_retrieve_day(request, year, month):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    entries = InventoryOut.objects.filter(date_creation__year=year, date_creation__month=month).annotate(day=ExtractDay('date_creation'),).values('day','id_inventory_into__id_article__id_category__name').annotate(total=Count('id'))
+
+        # Formater les données dans le format souhaité
+    result = {}
+    for entry in entries:
+        category = entry['id_inventory_into__id_article__id_category__name']
+        day = entry['day']
+        total = entry['total']
+        if category not in result:
+            result[category] = [{'day': day, 'total': total}]
+            
+        elif category in result:
+            result[category] += [{'day': day, 'total': total}]
+            #result[category]['total'] += total
+            
+    response_data = {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "message": "Data retrieved successfully"
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+   
+   
 
 @api_view(['GET'])
 def Statistique_total_stock_out_retrieve_month_category(request, year, category):
@@ -531,6 +1019,236 @@ def Statistique_total_stock_out_retrieve_day_category(request, year, month, cate
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+################################################################ Pour les prix
+
+# Ces vues retournes les nombre des differentes entrées chronologiquement et par catégorie
+# 
+# 
+# 
+# 
+# 
+# 
+
+# Sorties General
+#
+#
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_month(request, year):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryOut.objects.filter(date_creation__year=year).annotate(month=ExtractYear('date_creation'),).values('month', 'id_inventory_into__id_article__id_category__name').annotate(total=Sum('id_inventory_into__price')).order_by('month')
+    serializer = ArticlePriceOutSerializer(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_year(request):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryOut.objects.all().annotate(year=ExtractYear('date_creation'),).values('year', 'id_inventory_into__id_article__id_category__name').annotate(total=Sum('id_inventory_into__price')).order_by('year')
+    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_day(request, year, month):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    entries = InventoryOut.objects.filter(
+    date_creation__year=year, date_creation__month=month).annotate(
+    day=ExtractDay('date_creation'),).values('day', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').annotate(total=Count('quantity')).order_by('day')
+    result = {}
+    days = []
+    for entry in entries:
+        
+        category = entry['id_inventory_into__id_article__id_category__name']
+        day = entry['day']
+        price = entry['id_inventory_into__price']
+        if category not in result:
+            result[category] = [{'day': day, 'id_inventory_into__price': [price]}]
+            days+=[day] 
+            
+        elif category in result:
+            if day not in days:
+                result[category] += [{'day': day, 'id_inventory_into__price': [price]}]
+                
+                #print(result[category][0]['id_inventory_into__price'])
+            else:
+                result[category][0]['id_inventory_into__price'] += [price]
+            #result[category]['total'] += total
+        
+    response_data = {
+        "status": "success",
+        "data": result,
+        "count": len(result),
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+  
+# Sorties par categories
+#
+#
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_month_category(request, year, category):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryOut.objects.filter(
+    date_creation__year=year, id_inventory_into__id_article__id_category__name=category).annotate(
+    month=ExtractMonth('date_creation'),).values('month', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('month')
+    print(total_articles)
+    serializer = ArticlePriceOutSerializer(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_year_category(request, category):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryOut.objects.filter(id_inventory_into__id_article__id_category__name=category).annotate(year=ExtractYear('date_creation'),).values('year', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('year')
+    print(total_articles)
+    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_day_category(request, year, month, category):
+    total_articles = InventoryOut.objects.filter(
+    date_creation__year=year, date_creation__month=month, id_inventory_into__id_article__id_category__name=category).annotate(
+    day=ExtractDay('date_creation'),).values('day', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('day')
+    print(total_articles)
+    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+# Par articles
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_month_article(request, year, article):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryOut.objects.filter(
+    date_creation__year=year, id_inventory_into__id_article__designation=article).annotate(
+    month=ExtractMonth('date_creation'),).values('month', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('month')
+    print(total_articles)
+    serializer = ArticlePriceOutSerializer(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_year_article(request, article):
+
+# Supposons que vous ayez un modèle Article avec une date de création
+    total_articles = InventoryOut.objects.filter(id_inventory_into__id_article__designation=article).annotate(year=ExtractYear('date_creation'),).values('year', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('year')
+    print(total_articles)
+    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+@api_view(['GET'])
+def Statistique_price_stock_out_retrieve_day_article(request, year, month, article):
+    total_articles = InventoryOut.objects.filter(
+    date_creation__year=year, date_creation__month=month, id_inventory_into__id_article__designation=article).annotate(
+    day=ExtractDay('date_creation'),).values('day', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('day')
+    print(total_articles)
+    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
+    data = serializer.data
+    total_data = len(serializer.data)
+
+    response_data = {
+        "status": "success",
+        "data": data,
+        "count": total_data,
+        "message": "Data retrieved successfully"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+################################################################ Pour les littres
+
+
+
+
 
 class SettingViewSet(viewsets.ModelViewSet):
     queryset = Setting.objects.all()
@@ -541,10 +1259,10 @@ class SettingViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        queryset = self.get_queryset().last()
+        serializer = self.get_serializer(queryset)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
+        total_data = 1  # Get the total number of data
 
         response_data = {
             "status": "success",
