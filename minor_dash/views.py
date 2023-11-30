@@ -1163,7 +1163,7 @@ def Statistique_price_stock_out_retrieve_month_article(request, year, article):
 # Supposons que vous ayez un modèle Article avec une date de création
     total_articles = InventoryOut.objects.filter(
     date_creation__year=year, id_inventory_into__id_article__designation=article).annotate(
-    month=ExtractMonth('date_creation'),).values('month', 'id_inventory_into__id_article__designation').annotate(total=Sum('id_inventory_into__price')).order_by('month')
+    month=ExtractMonth('date_creation'),).values('month', 'id_inventory_into__id_article__id_category__name').annotate(total=Sum('id_inventory_into__price')).order_by('month')
     print(total_articles)
     serializer = ArticlePriceOutSerializer(total_articles, many=True)
     data = serializer.data
@@ -1185,7 +1185,7 @@ def Statistique_price_stock_out_retrieve_month_article(request, year, article):
 def Statistique_price_stock_out_retrieve_year_article(request, article):
 
 # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = InventoryOut.objects.filter(id_inventory_into__id_article__designation=article).annotate(year=ExtractYear('date_creation'),).values('year', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('year')
+    total_articles = InventoryOut.objects.filter(id_inventory_into__id_article__designation=article).annotate(year=ExtractYear('date_creation'),).values('year', 'id_inventory_into__id_article__id_category__name').annotate(total=Sum('id_inventory_into__price')).order_by('year')
     print(total_articles)
     serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
     data = serializer.data
@@ -1205,7 +1205,7 @@ def Statistique_price_stock_out_retrieve_year_article(request, article):
 def Statistique_price_stock_out_retrieve_day_article(request, year, month, article):
     total_articles = InventoryOut.objects.filter(
     date_creation__year=year, date_creation__month=month, id_inventory_into__id_article__designation=article).annotate(
-    day=ExtractDay('date_creation'),).values('day', 'id_inventory_into__price', 'id_inventory_into__id_article__designation', 'id_inventory_into__id_article__id_category__name').order_by('day')
+    day=ExtractDay('date_creation'),).values('day', 'id_inventory_into__id_article__id_category__name').annotate(total=Sum('id_inventory_into__price')).order_by('day')
     print(total_articles)
     serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
     data = serializer.data
