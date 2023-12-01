@@ -41,6 +41,11 @@ urlpatterns = [
     
     
     # Par prix
+    path('get-statistique_price_general_stock_int_month/<int:year>/', Statistique_price_general_stock_int_retrieve_month),
+    path('get-statistique_price_general_stock_int_year/', Statistique_price_general_stock_int_retrieve_year),
+    path('get-statistique_price_general_stock_int_day/<int:year>/<int:month>/', Statistique_price_general_stock_int_retrieve_day),
+    
+    
     path('get-statistique_price_stock_int_month/<int:year>/', Statistique_price_stock_int_retrieve_month),
     path('get-statistique_price_stock_int_year/', Statistique_price_stock_int_retrieve_year),
     path('get-statistique_price_stock_int_day/<int:year>/<int:month>/', Statistique_price_stock_int_retrieve_day),
@@ -53,6 +58,10 @@ urlpatterns = [
 
     
     # Par litre
+    path('get-statistique_littre_general_stock_int_month/<int:year>/', Statistique_littre_general_stock_int_retrieve_month),
+    path('get-statistique_littre_general_stock_int_year/', Statistique_littre_general_stock_int_retrieve_year),
+    path('get-statistique_littre_general_stock_int_day/<int:year>/<int:month>/', Statistique_littre_general_stock_int_retrieve_day),
+    
    
     path('get-statistique_littre_stock_int_month/<int:year>/', Statistique_littre_stock_int_retrieve_month),
     path('get-statistique_littre_stock_int_year/', Statistique_littre_stock_int_retrieve_year),
@@ -93,6 +102,11 @@ urlpatterns = [
     
     
     # Par prix
+    path('get-statistique_price_general_stock_out_month/<int:year>/', Statistique_price_general_stock_out_retrieve_month),
+    path('get-statistique_price_general_stock_out_year/', Statistique_price_general_stock_out_retrieve_year),
+    path('get-statistique_price_general_stock_out_day/<int:year>/<int:month>/', Statistique_price_general_stock_out_retrieve_day),
+    
+    
     path('get-statistique_price_stock_out_month/<int:year>/', Statistique_price_stock_out_retrieve_month),
     path('get-statistique_price_stock_out_year/', Statistique_price_stock_out_retrieve_year),
     path('get-statistique_price_stock_out_day/<int:year>/<int:month>/', Statistique_price_stock_out_retrieve_day),
@@ -105,6 +119,10 @@ urlpatterns = [
     
     
     #Par littre
+    path('get-statistique_littre_general_stock_out_month/<int:year>/', Statistique_littre_general_stock_out_retrieve_month),
+    path('get-statistique_littre_general_stock_out_year/', Statistique_littre_general_stock_out_retrieve_year),
+    path('get-statistique_littre_general_stock_out_day/<int:year>/<int:month>/', Statistique_littre_general_stock_out_retrieve_day),
+    
     path('get-statistique_littre_stock_out_month/<int:year>/', Statistique_littre_stock_out_retrieve_month),
     path('get-statistique_littre_stock_out_year/', Statistique_littre_stock_out_retrieve_year),
     path('get-statistique_littre_stock_out_day/<int:year>/<int:month>/', Statistique_littre_stock_out_retrieve_day),
