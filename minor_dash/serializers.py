@@ -5,20 +5,26 @@ from users.models import *
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.db.models import Sum
 
-
+def number_to_month(num):
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    if num >= 1 and num <= 12:
+        return months[num - 1]
+    else:
+        return "Invalid month number"
 # Serializers for Articles by total
 #
 #
 #
 #
+
 class ArticleSerializer(serializers.ModelSerializer):
   month = serializers.DateField()
   total = serializers.IntegerField()
 
   def to_representation(self, instance):
       return {
-          'month': instance['month'],
-          'total': instance['total']
+          'months': number_to_month(instance['month']),
+          'value': instance['total']
       }
 
 class ArticleCategoryGeneralSerializer(serializers.ModelSerializer):
@@ -28,29 +34,29 @@ class ArticleCategoryGeneralSerializer(serializers.ModelSerializer):
 
   def to_representation(self, instance):
       return {
-          'month': instance['month'],
-          'total': instance['total'],
+          'months': number_to_month(instance['month']),
+          'value': instance['total'],
           'category': instance['category'],
       }
 
 class ArticleSerializerYear(serializers.ModelSerializer):
-  year = serializers.DateField()
-  total = serializers.IntegerField()
+  years = serializers.DateField()
+  value = serializers.IntegerField()
 
   def to_representation(self, instance):
       return {
-          'year': instance['year'],
-          'total': instance['total']
+          'years': instance['year'],
+          'value': instance['total']
       }
 
 class ArticleSerializerDay(serializers.ModelSerializer):
-  day = serializers.DateField()
-  total = serializers.IntegerField()
+  days = serializers.DateField()
+  value = serializers.IntegerField()
 
   def to_representation(self, instance):
       return {
-          'day': instance['day'],
-          'total': instance['total']
+          'days': instance['day'],
+          'value': instance['total']
       }
 
 
@@ -67,8 +73,8 @@ class ArticlePriceSerializer(serializers.ModelSerializer):
   
   def to_representation(self, instance):
       return {
-          'month': instance['month'],
-          'total': instance['total'],
+          'months': number_to_month(instance['month']),
+          'value': instance['total'],
           'titre': instance['id_article__id_category__name'],
       }
 
@@ -79,8 +85,8 @@ class ArticlePriceSerializerYear(serializers.ModelSerializer):
   
   def to_representation(self, instance):
       return {
-          'year': instance['year'],
-          'total': instance['total'],
+          'years': instance['year'],
+          'value': instance['total'],
           'titre': instance['id_article__id_category__name'],
       }
 
@@ -92,8 +98,8 @@ class ArticlePriceSerializerDay(serializers.ModelSerializer):
   
   def to_representation(self, instance):
       return {
-          'day': instance['day'],
-          'total': instance['total'],
+          'days': instance['day'],
+          'value': instance['total'],
           'titre': instance['id_article__id_category__name'],
       }
       
@@ -107,8 +113,8 @@ class ArticlePriceOutSerializer(serializers.ModelSerializer):
   
   def to_representation(self, instance):
       return {
-          'month': instance['month'],
-          'total': instance['total'],
+          'months': number_to_month(instance['month']),
+          'value': instance['total'],
           'titre': instance['id_inventory_into__id_article__id_category__name'],
       }
 
@@ -119,8 +125,8 @@ class ArticlePriceOutSerializerYear(serializers.ModelSerializer):
   
   def to_representation(self, instance):
       return {
-          'year': instance['year'],
-          'total': instance['total'],
+          'years': instance['year'],
+          'value': instance['total'],
           'titre': instance['id_inventory_into__id_article__id_category__name'],
       }
 
@@ -132,8 +138,8 @@ class ArticlePriceOutSerializerDay(serializers.ModelSerializer):
   
   def to_representation(self, instance):
       return {
-          'day': instance['day'],
-          'total': instance['total'],
+          'days': instance['day'],
+          'value': instance['total'],
           'titre': instance['id_inventory_into__id_article__id_category__name'],
       }
     
@@ -150,8 +156,8 @@ class ArticleLitreSerializer(serializers.ModelSerializer):
 
   def to_representation(self, instance):
       return {
-          'month': instance['month'],
-          'litre': instance['litre']
+          'months': number_to_month(instance['month']),
+          'value': instance['litre']
       }
 
 class ArticleLitreSerializerYear(serializers.ModelSerializer):
@@ -160,8 +166,8 @@ class ArticleLitreSerializerYear(serializers.ModelSerializer):
 
   def to_representation(self, instance):
       return {
-          'year': instance['year'],
-          'litre': instance['litre']
+          'years': instance['year'],
+          'value': instance['litre']
       }
 
 class ArticleLitreSerializerDay(serializers.ModelSerializer):
@@ -170,8 +176,8 @@ class ArticleLitreSerializerDay(serializers.ModelSerializer):
 
   def to_representation(self, instance):
       return {
-          'day': instance['day'],
-          'litre': instance['litre']
+          'days': instance['day'],
+          'value': instance['litre']
       }
 
 
@@ -181,21 +187,21 @@ class CalendreDaysListSerializer(serializers.ModelSerializer):
   day = serializers.DateField()
   def to_representation(self, instance):
       return {
-          'value': instance['day'],
+          'days': instance['day'],
           'label': f"{instance['day']}",
       }
 class CalendreMonthListSerializer(serializers.ModelSerializer):
   month = serializers.DateField()
   def to_representation(self, instance):
       return {
-           'value': instance['month'],
+           'months': number_to_month(instance['month']),
            'label': f"{instance['month']}",
       }
 class CalendreweekListSerializer(serializers.ModelSerializer):
   week = serializers.DateField()
   def to_representation(self, instance):
       return {
-           'value': instance['week'],
+           'weeks': instance['week'],
            'label': f"{instance['week']}",
       }
   
@@ -203,7 +209,7 @@ class CalendreYearListSerializer(serializers.ModelSerializer):
   year = serializers.DateField()
   def to_representation(self, instance):
       return {
-           'value': instance['year'],
+           'years': instance['year'],
            'label': f"{instance['year']}",
       }
       

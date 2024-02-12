@@ -158,7 +158,7 @@ class InventoryInto(models.Model):
     id_article = models.ForeignKey(Inventory, on_delete=models.SET_NULL, null=True)
     userOrNew = models.CharField(max_length=20,null=True, blank=True)
     unit = models.CharField(max_length=20,null=True, blank=True)
-    capacity = models.DecimalField(max_digits=20, decimal_places=2,null=True, blank=True)
+    capacity = models.DecimalField(max_digits=20, decimal_places=2,null=True, blank=True) #nombre des pieces aussi
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     description = models.TextField(blank=True) 
 
