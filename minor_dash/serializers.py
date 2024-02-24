@@ -218,3 +218,85 @@ class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Setting
         fields = '__all__'
+
+
+class InventorySummarybyYearsAndCategorySerializer(serializers.Serializer):
+    category_name = serializers.CharField(source='id_category__name')
+    available_count = serializers.IntegerField()
+    unavailable_count = serializers.IntegerField()
+    total_quantity_in = serializers.IntegerField()
+    total_quantity_out = serializers.IntegerField()
+    total_price = serializers.DecimalField(max_digits=20, decimal_places=2)
+   
+    capacity_in = serializers.DecimalField(max_digits=20, decimal_places=3, source='inventoryinto__capacity')
+    weight_in = serializers.DecimalField(max_digits=20, decimal_places=3, source='inventoryinto__weight')
+    capacity_out = serializers.DecimalField(max_digits=20, decimal_places=3)
+    numbres_of_pieces_int = serializers.IntegerField(source='inventoryinto__numbres_of_pieces')
+    numbres_of_pieces_out = serializers.IntegerField()
+    year = serializers.IntegerField()
+    month = serializers.IntegerField()
+    day = serializers.IntegerField()
+    week = serializers.IntegerField()
+    #weight_out = serializers.DecimalField()
+
+    class Meta:
+        fields = ['category_name','year','day','month','week','available_count', 'unavailable_count', 'total_quantity_in', 'total_quantity_out', 'total_price','numbres_of_pieces_int','numbres_of_pieces_out', 'capacity_in', 'weight_in', 'capacity_out']
+
+    
+
+class InventorySummaryByArticleSerializer(serializers.Serializer):
+    article_name = serializers.CharField(source='designation')
+    available_count = serializers.IntegerField()
+    unavailable_count = serializers.IntegerField()
+    total_quantity_in = serializers.IntegerField()
+    total_quantity_out = serializers.IntegerField()
+    total_price = serializers.DecimalField(max_digits=20, decimal_places=2)
+   
+    capacity_in = serializers.DecimalField(max_digits=20, decimal_places=3, source='inventoryinto__capacity')
+    weight_in = serializers.DecimalField(max_digits=20, decimal_places=3, source='inventoryinto__weight')
+    capacity_out = serializers.DecimalField(max_digits=20, decimal_places=3)
+    numbres_of_pieces_int = serializers.IntegerField(source='inventoryinto__numbres_of_pieces')
+    numbres_of_pieces_out = serializers.IntegerField()
+    year = serializers.IntegerField()
+    month = serializers.IntegerField()
+    day = serializers.IntegerField()
+    week = serializers.IntegerField()
+    #weight_out = serializers.DecimalField()
+
+    class Meta:
+        fields = ['article_name','year','day','month','week', 'available_count', 'unavailable_count', 'total_quantity_in', 'total_quantity_out', 'total_price','numbres_of_pieces_int','numbres_of_pieces_out', 'capacity_in', 'weight_in', 'capacity_out']
+
+
+class MachineStatisticsSerializer(serializers.ModelSerializer):
+    planned = serializers.IntegerField()
+    actual = serializers.IntegerField()
+    total = serializers.IntegerField()
+    type_de_maintenance = serializers.CharField(source="diagnostics__typeMaintenance")
+
+    class Meta:
+        model = Machine
+        fields = ['nom', 'planned', 'actual',"type_de_maintenance",'total']
+
+
+class DiagnosticsStatisticsViewSerializer(serializers.ModelSerializer):
+  year= serializers.DateField()
+  month = serializers.DateField()
+  day = serializers.DateField()
+  def to_representation(self, instance):
+      return {
+           'years': instance['year'],
+           'months': number_to_month(instance['month']),
+           'days': instance['day'],
+           'label': f"{instance['count']}",
+      }
+class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
+  year= serializers.DateField()
+  month = serializers.DateField()
+  day = serializers.DateField()
+  def to_representation(self, instance):
+      return {
+           'years': instance['year'],
+           'months': number_to_month(instance['month']),
+           'days': instance['day'],
+           'label': f"{instance['count']}",
+      }

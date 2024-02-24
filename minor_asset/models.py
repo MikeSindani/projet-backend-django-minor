@@ -132,6 +132,8 @@ class Inventory(models.Model):
     designation = models.CharField(max_length=250,null=True,blank=True)
     unit = models.CharField(max_length=20,null=True, blank=True)
     capacity = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    weight = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    numbres_of_pieces = models.PositiveIntegerField(null=True, blank=True)
     price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     price_used_by_entreprise = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     currency = models.CharField(max_length=20,null=True, blank=True)
@@ -143,6 +145,7 @@ class Inventory(models.Model):
     id_category = models.ForeignKey(CategoryInventory, on_delete=models.SET_NULL, null=True, blank=True)
     image = models.ImageField(upload_to='articles/', null=True, blank=True)
     code_bar = models.CharField(max_length=255, null=True, blank=True)
+    
     description = models.TextField(blank=True)
     # date et time pour creat et modified  
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -150,7 +153,7 @@ class Inventory(models.Model):
     date_modification = models.DateTimeField(auto_now=True) 
     time_modified = models.TimeField(auto_now=True)
     def __str__(self):
-        return self.designation
+        return f"{self.id} - {self.designation}"
 
 
 class InventoryInto(models.Model):
@@ -158,14 +161,16 @@ class InventoryInto(models.Model):
     id_article = models.ForeignKey(Inventory, on_delete=models.SET_NULL, null=True)
     userOrNew = models.CharField(max_length=20,null=True, blank=True)
     unit = models.CharField(max_length=20,null=True, blank=True)
-    capacity = models.DecimalField(max_digits=20, decimal_places=2,null=True, blank=True) #nombre des pieces aussi
+    capacity = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    weight = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    numbres_of_pieces = models.IntegerField(null=True, blank=True) #nombre des pieces aussi
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     description = models.TextField(blank=True) 
 
     price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
-    price_used_by_entreprise = models.DecimalField(max_digits=5, decimal_places=3,null=True, blank=True)
-    price_unit = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True)
-    price_unit_used_by_entreprise = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True)
+    price_used_by_entreprise = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    price_unit = models.DecimalField(max_digits=20, decimal_places=3, null=True, blank=True)
+    price_unit_used_by_entreprise = models.DecimalField(max_digits=20, decimal_places=3, null=True, blank=True)
     currency = models.CharField(max_length=20,null=True, blank=True)
     rate = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     currency_used_by_entreprise = models.CharField(max_length=20,null=True, blank=True)
@@ -383,25 +388,25 @@ class Diagnostics(models.Model):
     # Ce champ contient la priorité du diagnostic
     priority = models.CharField(max_length=10, choices=PRIORITE_CHOICES)
     # Ce champ contient le temps en heures décimales du diagnostic
-    time_decimal_hour = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
+    time_decimal_hour = models.DecimalField(max_digits=20, decimal_places=2,null=True,blank=True)
     # Ce champ contient le kilométrage de la panne en entier
     km_panne = models.IntegerField()
     # Ce champ contient le kilométrage en service en entier
     km_en_service = models.IntegerField()
     # Ce champ contient la quantité de fuel consommée
-    fuel = models.DecimalField(max_digits=10, decimal_places=2)
+    fuel = models.DecimalField(max_digits=20, decimal_places=2)
     # Ce champ contient la quantité de cooling consommée
-    cooling = models.DecimalField(max_digits=10, decimal_places=2)
+    cooling = models.DecimalField(max_digits=20, decimal_places=2)
     # Ce champ contient la quantité de grease consommée
-    grease = models.DecimalField(max_digits=10, decimal_places=2)
+    grease = models.DecimalField(max_digits=20, decimal_places=2)
     # Ce champ contient la quantité d'engin oil consommée
-    engin_oil = models.DecimalField(max_digits=10, decimal_places=2)
+    engin_oil = models.DecimalField(max_digits=20, decimal_places=2)
     # Ce champ contient la quantité d'hydraulic oil consommée
-    hydraulic_oil = models.DecimalField(max_digits=10, decimal_places=2)
+    hydraulic_oil = models.DecimalField(max_digits=20, decimal_places=2)
     # Ce champ contient la quantité de transmission oil consommée
-    transmission_oil = models.DecimalField(max_digits=10, decimal_places=2)
+    transmission_oil = models.DecimalField(max_digits=20, decimal_places=2)
     # Ce champ contient le coût du diagnostic
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
+    cost = models.DecimalField(max_digits=20, decimal_places=2)
     # Ce champ contient la clé étrangère vers l'équipe qui a effectué le diagnostic
     id_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True)
     # Ce champ contient la date du début du diagnostic
