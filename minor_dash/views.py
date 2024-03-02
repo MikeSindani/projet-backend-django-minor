@@ -3079,13 +3079,36 @@ class SettingViewSet(viewsets.ModelViewSet):
         )
 
 
-class Statistique_maintenance_retrieve_year(APIView):
+class Statistique_maintenance_machine_list_retrieve(APIView):
     def get(self, request, format=None):
         # Annotate the queryset with planned and actual counts
-        queryset = Machine.objects.annotate(
+        serializer = ""
+        queryset = ''
+        period = request.query_params.get('period', 'year')
+        print(period)
+        period = str(period)
+        if period == 'day':
+            month = request.query_params.get('month')
+            year = request.query_params.get('year')
+            queryset = Machine.objects.filter(date_modification__year=year, date_creation__month=month).annotate(
             planned=Count('planifiermaintenance'),
             actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False))
-        )
+        ).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+        elif period == 'month':
+            year = request.query_params.get('year')
+            queryset = Machine.objects.filter(date_modification__year=year).annotate(
+            planned=Count('planifiermaintenance'),
+            actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False))
+        ).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+        elif period == 'year':
+            queryset = Machine.objects.filter().annotate(
+            planned=Count('planifiermaintenance'),
+            actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False))
+        ).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+        else:
+            return Response({"error": "Invalid period parameter."}, status=400)
+        
+        
         serializer = MachineStatisticsSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -3093,16 +3116,18 @@ class DiagnosticsStatisticsView(APIView):
     def get(self, request):
         serializer = ""
         queryset = ''
-        period = request.query_params.get('period', 'day')
+        period = request.query_params.get('period', 'year')
+        print(period)
+        period = str(period)
         if period == 'day':
             month = request.query_params.get('month')
             year = request.query_params.get('year')
-            queryset = Diagnostics.objects.filter(date_modification__date=date).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = Diagnostics.objects.filter(date_modification__year=year, date_creation__month=month,isDiagnostic=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
         elif period == 'month':
             year = request.query_params.get('year')
-            queryset = Diagnostics.objects.filter(date_modification__year=year, date_creation__month=month).filter(date_modification__date=date).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = Diagnostics.objects.filter(date_modification__year=year,isDiagnostic=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
         elif period == 'year':
-            queryset = Diagnostics.objects.all().filter(date_modification__date=date).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = Diagnostics.objects.filter(isDiagnostic=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
         else:
             return Response({"error": "Invalid period parameter."}, status=400)
         
@@ -3115,27 +3140,20 @@ class DiagnosticsStatisticsView(APIView):
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.db.models import Count
-from django.db.models.functions import ExtractYear, ExtractMonth, ExtractDay
-from .models import PlanifierMaintenance
-from .serializers import PlanifierMaintenanceSerializer  # Assurez-vous que ce sérialiseur existe
+# Assurez-vous que ce sérialiseur existe
 
 class PlanifierMaintenanceStatisticsView(APIView):
     def get(self, request):
         period = request.query_params.get('period', 'day')
         if period == 'day':
-            date = request.query_params.get('date')
-            queryset = PlanifierMaintenance.objects.filter(date_modification__date=date).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
-        elif period == 'month':
             year = request.query_params.get('year')
             month = request.query_params.get('month')
-            queryset = PlanifierMaintenance.objects.filter(date_modification__year=year, date_modification__month=month).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
-        elif period == 'year':
+            queryset = PlanifierMaintenance.objects.filter(date_modification__year=year, date_creation__month=month).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+        elif period == 'month':
             year = request.query_params.get('year')
             queryset = PlanifierMaintenance.objects.filter(date_modification__year=year).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+        elif period == 'year':
+            queryset = PlanifierMaintenance.objects.all().annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
         else:
             return Response({"error": "Invalid period parameter."}, status=400)
         
@@ -3147,4 +3165,26 @@ class PlanifierMaintenanceStatisticsView(APIView):
         "message": "Data retrieved successfully",
         }
         return Response(response_data, status=status.HTTP_200_OK)
-
+class RepairStatisticsView(APIView):
+    def get(self, request):
+        period = request.query_params.get('period', 'day')
+        if period == 'day':
+            year = request.query_params.get('year')
+            month = request.query_params.get('month')
+            queryset = Diagnostics.objects.filter(date_modification__year=year, date_creation__month=month,isRepair=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+        elif period == 'month':
+            year = request.query_params.get('year')
+            queryset = Diagnostics.objects.filter(date_modification__year=year,isRepair=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+        elif period == 'year':
+            queryset = Diagnostics.objects.filter(isRepair=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+        else:
+            return Response({"error": "Invalid period parameter."}, status=400)
+        
+        serializer = RepairSerializer(queryset, many=True)  # Utilisez le sérialiseur adapté au modèle PlanifierMaintenance
+        data = serializer.data  
+        response_data = {
+        "status": "success",
+        "data": data,
+        "message": "Data retrieved successfully",
+        }
+        return Response(response_data, status=status.HTTP_200_OK)

@@ -16,6 +16,10 @@ urlpatterns = [
     # Urls des diagnostics statistique , planned and maintenance
     path('diagnostics/statistics/', DiagnosticsStatisticsView.as_view(), name='diagnostics-statistics'),
     path('plannedMaintenance/statistics/', PlanifierMaintenanceStatisticsView.as_view(), name='plannedMaintenance-statistics'),
+    path('repair/statistics/', RepairStatisticsView.as_view(), name='repair-statistics'),
+    path('diagnostics/statistics/list/machine/', Statistique_maintenance_machine_list_retrieve.as_view(), name='repair-statistics'),
+    path('diagnostics/statistics/category/machine/', Statistique_maintenance_machine_list_retrieve.as_view(), name='repair-statistics'),
+    
     ############################################################
     # Urls des différents entrées
     #

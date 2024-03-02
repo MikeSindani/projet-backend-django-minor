@@ -268,14 +268,15 @@ class InventorySummaryByArticleSerializer(serializers.Serializer):
 
 
 class MachineStatisticsSerializer(serializers.ModelSerializer):
+    name_machine = serializers.CharField(source='nom')
+    category_machine = serializers.CharField(source='categorie__nom')
     planned = serializers.IntegerField()
     actual = serializers.IntegerField()
     total = serializers.IntegerField()
     type_de_maintenance = serializers.CharField(source="diagnostics__typeMaintenance")
-
     class Meta:
         model = Machine
-        fields = ['nom', 'planned', 'actual',"type_de_maintenance",'total']
+        fields = ['nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine"]
 
 
 class DiagnosticsStatisticsViewSerializer(serializers.ModelSerializer):
@@ -287,7 +288,7 @@ class DiagnosticsStatisticsViewSerializer(serializers.ModelSerializer):
            'years': instance['year'],
            'months': number_to_month(instance['month']),
            'days': instance['day'],
-           'label': f"{instance['count']}",
+           'value': f"{instance['count']}",
       }
 class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
   year= serializers.DateField()
@@ -298,5 +299,17 @@ class PlanifierMaintenanceSerializer(serializers.ModelSerializer):
            'years': instance['year'],
            'months': number_to_month(instance['month']),
            'days': instance['day'],
-           'label': f"{instance['count']}",
+           'value': f"{instance['count']}",
+      }
+  
+class RepairSerializer(serializers.ModelSerializer):
+  year= serializers.DateField()
+  month = serializers.DateField()
+  day = serializers.DateField()
+  def to_representation(self, instance):
+      return {
+           'years': instance['year'],
+           'months': number_to_month(instance['month']),
+           'days': instance['day'],
+           'value': f"{instance['count']}",
       }
