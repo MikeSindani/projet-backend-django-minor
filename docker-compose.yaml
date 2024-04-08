@@ -12,6 +12,7 @@ services:
      - redis
      - celery
      - celery-beat
+
  db:
    image: postgres
    environment:
@@ -20,6 +21,10 @@ services:
      - POSTGRES_PASSWORD=postgres
    volumes: 
      - /data/db:/var/lib/postgresql/data
+   ports:
+      - 5432:5432
+   restart: always
+
  redis:
    image: redis
  celery:
@@ -30,6 +35,7 @@ services:
    depends_on:
      - db
      - redis
+
  celery-beat:
    build: .
    command: celery -A PROJET_DJANGO_MINOR beat --loglevel=info
@@ -38,3 +44,6 @@ services:
    depends_on:
      - db
      - redis
+
+volumes:
+ postgres_data:

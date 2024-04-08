@@ -85,6 +85,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
 class AgentSerializer(serializers.ModelSerializer):
     team = serializers.SerializerMethodField()
+    user_id = serializers.SerializerMethodField()
 
     # user = serializers.SerializerMethodField()
     class Meta:
@@ -96,6 +97,14 @@ class AgentSerializer(serializers.ModelSerializer):
 
     def get_team(self, obj):
         return f"{obj.team.name}"
+
+    def get_user_id(self,obj):
+
+        try:
+            user_id = Agent.objects.filter(user__id=obj.id).values("id")
+        except:
+            return "non_found"
+        return user_id 
 
 
 class AgentSerializerTwo(serializers.ModelSerializer):
@@ -214,11 +223,14 @@ class InventoryOutSerializer(serializers.ModelSerializer):
     id_inventory_into = serializers.SerializerMethodField()
     id_team = serializers.SerializerMethodField()
     id_agent = serializers.SerializerMethodField()
+    byWeight = serializers.BooleanField(default=False, source="id_inventory_into__id_article__by_weight", read_only=True)
     user = serializers.SerializerMethodField()
+    byCapacity = serializers.BooleanField(default=False, source="id_inventory_into__id_article__by_capacity", read_only=True)
+    byNumberOfPiece = serializers.BooleanField(default=False, source="id_inventory_into__id_article__by_number", read_only=True)
 
     class Meta:
         model = InventoryOut
-        fields = "__all__"
+        fields = ["id",'byWeight', 'id_inventory_into', 'id_team', 'id_agent', 'user', 'quantity', 'date_creation', 'time_created', 'date_modification', 'time_modified', 'byCapacity', 'byNumberOfPiece']
 
     def get_user(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"
@@ -333,6 +345,8 @@ class TeamSerializer(serializers.ModelSerializer):
     team_description = serializers.SerializerMethodField()
     team_supervisor = serializers.SerializerMethodField()
     team_assitance = serializers.SerializerMethodField()
+    team_numbres = serializers.SerializerMethodField()
+    
 
     class Meta:
         model = Team
@@ -359,6 +373,13 @@ class TeamSerializer(serializers.ModelSerializer):
         except:
             return f"No name found"
         return f"{agent.prenom} {agent.nom}"
+    def get_team_numbres(self, obj):
+
+        try:
+            nbrs = Agent.objects.filter(team=obj.id).count()
+        except:
+            return 0
+        return nbrs
 
 
 class TeamSerializerTwo(serializers.ModelSerializer):
@@ -494,9 +515,7 @@ class DiagnosticsSerializerTwo(serializers.ModelSerializer):
 class TrackingPiecesSerializer(serializers.ModelSerializer):
     id_machine = serializers.PrimaryKeyRelatedField(queryset=Machine.objects.all())
     id_work_order = serializers.PrimaryKeyRelatedField(queryset=WorkOrder.objects.all())
-    id_inventory_out = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=InventoryOut.objects.all()
-    )
+    id_inventory_out = serializers.PrimaryKeyRelatedField(queryset=InventoryOut.objects.all())
 
     class Meta:
         model = TrackingPieces
@@ -510,11 +529,59 @@ class InventoryOutSerializerForTracking(serializers.ModelSerializer):
 
 
 class TrackingPiecesSerializerforDetails(serializers.ModelSerializer):
-    id_inventory_out = InventoryOutSerializer(many=True, read_only=True)
-
+    name_full = serializers.SerializerMethodField()
+    id_inventory_out = serializers.SerializerMethodField()
+    capacity_total = serializers.SerializerMethodField()
+    weight_total = serializers.SerializerMethodField()
+    numbres_of_pieces_total =  serializers.SerializerMethodField()
     class Meta:
         model = TrackingPieces
-        fields = ["id_inventory_out"]
+        fields = ["id", "name_full","id_inventory_out","capacity","weight" ,"numbres_of_pieces","capacity_total","weight_total" ,"numbres_of_pieces_total" ,"description" ,"quantity_used" ,"quantity_total"]
+    def get_name_full(self, obj):
+        # Check if obj.id_machine exists before accessing its marque and nom properties
+        if obj.id_inventory_out:
+            if obj.id_inventory_out.id_inventory_into:
+               if obj.id_inventory_out.id_inventory_into.id_article:
+                     return f"{obj.id_inventory_out.id_inventory_into.id_article.designation}"
+        else:
+            # Return a default value or handle the case when full machine name is not available
+            return "Full Inventory out not available"
+    def get_capacity_total(self, obj):
+        # Check if obj.id_machine exists before accessing its marque and nom properties
+        if obj.id_inventory_out:
+            if obj.id_inventory_out.id_inventory_into:
+               if obj.id_inventory_out.id_inventory_into.id_article:
+                     return f"{obj.id_inventory_out.id_inventory_into.id_article.capacity}"
+        else:
+            # Return a default value or handle the case when full machine name is not available
+            return "capacity  not available"
+    def get_weight_total(self, obj):
+        # Check if obj.id_machine exists before accessing its marque and nom properties
+        if obj.id_inventory_out:
+            if obj.id_inventory_out.id_inventory_into:
+               if obj.id_inventory_out.id_inventory_into.id_article:
+                     return f"{obj.id_inventory_out.id_inventory_into.id_article.weight}"
+        else:
+            # Return a default value or handle the case when full machine name is not available
+            return "weight not available"
+    def get_numbres_of_pieces_total(self, obj):
+        # Check if obj.id_machine exists before accessing its marque and nom properties
+        if obj.id_inventory_out:
+            if obj.id_inventory_out.id_inventory_into:
+               if obj.id_inventory_out.id_inventory_into.id_article:
+                     return f"{obj.id_inventory_out.id_inventory_into.id_article.numbres_of_pieces}"
+        else:
+            # Return a default value or handle the case when full machine name is not available
+            return "numbres_of_pieces not available"
+
+    def get_id_inventory_out(self, obj):
+        # Check if obj.id_machine exists before accessing its nom property
+        if obj.id_inventory_out:
+            return f"{obj.id_inventory_out.id}"
+        else:
+            # Return a default value or handle the case when machine name is not available
+            return "Inventory out not id available"
+    
 
 
 class PlanifierMaintenanceSerializerTwo(serializers.ModelSerializer):
@@ -1088,3 +1155,20 @@ class InventorySerializerForWebSockets(serializers.ModelSerializer):
 
     def get_genre(self, obj):
         return "Into"
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'password'] # Inclure le mot de passe
+
+class CodePanneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CodePanne
+        fields = ['code', 'description']
+        
+class CodePanneDetailsSerializer(serializers.ModelSerializer):
+    id_code_panne = CodePanneSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = WorkOrder
+        fields = ['id_code_panne']

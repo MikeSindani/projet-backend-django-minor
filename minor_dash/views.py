@@ -53,179 +53,383 @@ from django.db.models import DecimalField
 #
 # Ces vues retournes les nombre des differentes entrées seulement chronologiquement(Year, Month, Day)
 @api_view(["GET"])
-def Statistique_total_stock_int_retrieve_month(request, year):
-    total_articles = (
-        InventoryInto.objects.filter(date_modification__year=year)
-        .annotate(month=ExtractMonth("date_modification"))
-        .values("month")
-        .annotate(total=Sum("quantity"))
-        .order_by("month")
-    )
+def Statistique_stock_int_retrieve(request):
+    period = request.query_params.get("period", "years")
+    year = request.query_params.get("year", 2024)
+    month = request.query_params.get("month", 1)
+    categorie = request.query_params.get("category", "general")
+    serializer = ""
+    if categorie == "general":
+        if period == "years":
+            total_articles = (
+                InventoryInto.objects.all()
+                .annotate(year=ExtractYear("date_modification"))
+                .values("year")
+                .annotate(total=Sum("quantity"))
+                .order_by("-year")
+            )
+            serializer = ArticleSerializerYear(total_articles, many=True)
+        elif period == "month":
+            total_articles = (
+                InventoryInto.objects.filter(date_modification__year=year)
+                .annotate(month=ExtractMonth("date_modification"))
+                .values("month")
+                .annotate(total=Sum("quantity"))
+                .order_by("month")
+            )
+            serializer = ArticleSerializer(total_articles, many=True)
+        elif period == "days":
 
-    serializer = ArticleSerializer(total_articles, many=True)
+            total_articles = (
+                InventoryInto.objects.filter(date_modification__year=year, date_modification__month=month)
+                .annotate(day=ExtractDay("date_modification"))
+                .values("day")
+                .annotate(total=Sum("quantity"))
+                .order_by("day")
+            )
+            serializer = ArticleSerializerDay(total_articles, many=True)
+    elif categorie == "expense":
+            # Retrieve the latest setting to get the current currency
+        latest_setting = Setting.objects.latest("id")
+        current_currency = latest_setting.currency
+            # Supposons que vous ayez un modèle Article avec une date de création
+        if period == "days":
+            total_articles = (
+                InventoryInto.objects.filter(
+                    date_modification__year=year,
+                    date_modification__month=month,
+                    currency_used_by_entreprise=current_currency,
+                )
+                .annotate(
+                    day=ExtractDay("date_modification"),
+                )
+                .values("day")
+                .annotate(total=Sum("price_used_by_entreprise"))
+                .order_by("day")
+            )
+            print(total_articles)
+            serializer = ArticleSerializerDay(total_articles, many=True)
+        elif period == "month":
+                # Supposons que vous ayez un modèle Article avec une date de création
+               # Filter the InventoryInto objects by the current currency and the given year
+            total_articles = (
+                InventoryInto.objects.filter(
+                    date_modification__year=year,
+                    currency_used_by_entreprise=current_currency,  # Assuming InventoryInto has a 'currency' field
+                )
+                .annotate(month=ExtractMonth("date_modification"))
+                .values("month")
+                .annotate(total=Sum("price_used_by_entreprise"))
+                .order_by("month")
+            )
+
+            serializer = ArticleSerializerMonth(total_articles, many=True)
+        elif period == "years":
+
+            total_articles = (
+                InventoryInto.objects.filter(currency_used_by_entreprise=current_currency)
+                .annotate(
+                    year=ExtractYear("date_modification"),
+                )
+                .values("year")
+                .annotate(total=Sum("price_used_by_entreprise"))
+                .order_by("year")
+            )
+            serializer = ArticleSerializerYear(total_articles, many=True)
+    elif categorie == "litre":
+        # Retrieve the latest setting to get the current currency
+        latest_setting = Setting.objects.latest('id')
+        current_capacity = latest_setting.capacity
+   
+        if period == 'days':
+            # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryInto.objects.filter(
+                    date_modification__year=year, date_modification__month=month,unit=current_capacity
+                )
+                .annotate(
+                    day=ExtractDay("date_modification"),
+                )
+                .values("day")
+                .annotate(total=Sum("capacity"))
+                .order_by("day")
+            )
+            print(total_articles)
+            serializer = ArticleSerializerDay(total_articles, many=True)
+        elif period == 'years':
+             # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryInto.objects.filter(unit=current_capacity)
+                .annotate(
+                    year=ExtractYear("date_modification"),
+                )
+                .values("year")
+                .annotate(total=Sum("capacity"))
+                .order_by("year")
+            )
+            serializer = ArticleSerializerYear(total_articles, many=True)
+        elif period == 'month':
+            total_articles = (
+                InventoryInto.objects.filter(unit=current_capacity)
+                .annotate(
+                    month=ExtractMonth("date_modification"),
+                )
+                .values("month")
+                .annotate(total=Sum("capacity"))
+                .order_by("month")
+            )
+            serializer = ArticleSerializerMonth(total_articles, many=True)
+
     data = serializer.data
-    total_data = len(serializer.data)
-
     response_data = {
         "status": "success",
         "data": data,
-        "count": total_data,
         "message": "Data retrieved successfully",
     }
 
     return Response(response_data, status=status.HTTP_200_OK)
-
 
 @api_view(["GET"])
-def Statistique_total_stock_int_retrieve_year(request):
+def Statistique_stock_out_retrieve(request):
 
     # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.all()
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("quantity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
+    period = request.query_params.get("period", "years")
+    year = request.query_params.get("year", 2024)
+    month = request.query_params.get("month", 1)
+    categorie = request.query_params.get("category", "general")
+    serializer = ""
+    if categorie == "general":     
+        if period == "month":
+            total_articles = (
+                InventoryOut.objects.filter(date_modification__year=year)
+                .annotate(
+                    month=ExtractMonth("date_modification"),
+                )
+                .values("month")
+                .annotate(total=Sum("quantity"))
+                .order_by("month")
+            )
+            print(total_articles)
+            serializer = ArticleSerializerMonth(total_articles, many=True)
 
+        if period == "years":
+            # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryOut.objects.all()
+                .annotate(year=ExtractYear("date_modification"))
+                .values("year")
+                .annotate(total=Sum("quantity"))
+                .order_by("year")
+            )
+            print(total_articles)
+            serializer = ArticleSerializerYear(total_articles, many=True)
+
+        if period == "days":
+            total_articles = (
+            InventoryOut.objects.filter(date_modification__year=year)
+            .annotate(
+                day=ExtractDay("date_modification"),
+            )
+            .values("day")
+            .annotate(total=Sum("quantity"))
+            .order_by("day")
+        )
+            print(total_articles)
+            serializer = ArticleSerializerDay(total_articles, many=True)
+    elif categorie == "expense":
+        # Retrieve the latest setting to get the current currency
+        latest_setting = Setting.objects.latest('id')
+        current_currency = latest_setting.currency
+        if period == 'month': 
+            # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryOut.objects.filter(date_modification__year=year,id_inventory_into__currency_used_by_entreprise=current_currency)
+                .annotate(
+                    month=ExtractMonth("date_modification"),
+                )
+                .values("month")
+                .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
+                .order_by("month")
+            )
+            serializer = ArticleSerializerMonth(total_articles, many=True)
+        elif period == 'years':
+             # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryOut.objects.filter(id_inventory_into__currency_used_by_entreprise=current_currency)
+                .annotate(
+                    year=ExtractYear("date_modification"),
+                )
+                .values("year")
+                .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
+                .order_by("year")
+            )
+            serializer = ArticleSerializerYear(total_articles, many=True)
+        elif period == 'days':
+            # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryOut.objects.filter(date_modification__year=year,id_inventory_into__currency_used_by_entreprise=current_currency,date_modification__month=month)
+                .annotate(
+                    day=ExtractDay("date_modification"),
+                )
+                .values("day")
+                .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
+                .order_by("day")
+            )
+            serializer = ArticleSerializerYear(total_articles, many=True)
+    elif categorie == 'litre':
+        # Retrieve the latest setting to get the current currency
+        latest_setting = Setting.objects.latest('id')
+        current_capacity = latest_setting.capacity
+        if period == 'month':
+            # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryOut.objects.filter(date_modification__year=year,id_inventory_into__unit=current_capacity)
+                .annotate(
+                    month=ExtractMonth("date_modification"),
+                )
+                .values("month")
+                .annotate(total=Sum("id_inventory_into__capacity"))
+                .order_by("month")
+            )
+            serializer = ArticleSerializerMonth(total_articles, many=True)
+        elif period == 'years':
+            # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryOut.objects.filter(id_inventory_into__unit=current_capacity)
+                .annotate(
+                    year=ExtractYear("date_modification"),
+                )
+                .values("year")
+                .annotate(total=Sum("id_inventory_into__capacity"))
+                .order_by("year")
+            )
+            serializer = ArticleSerializerYear(total_articles, many=True)
+        elif period == "days":
+            # Supposons que vous ayez un modèle Article avec une date de création
+            total_articles = (
+                InventoryOut.objects.filter(
+                    date_modification__year=year, date_modification__month=month,id_inventory_into__unit=current_capacity
+                )
+                .annotate(
+                    day=ExtractDay("date_modification"),
+                )
+                .values("day")
+                .annotate(total=Sum("id_inventory_into__capacity"))
+                .order_by("day")
+            )
+            serializer = ArticleSerializerDay(total_articles, many=True)
+    data = serializer.data
     response_data = {
         "status": "success",
         "data": data,
-        "count": total_data,
         "message": "Data retrieved successfully",
     }
     return Response(response_data, status=status.HTTP_200_OK)
-
 
 @api_view(["GET"])
-def Statistique_total_stock_int_retrieve_day(request, year, month):
+def Statistique_calendre_retrieve_week_and_day(request, filter_by, year, month):
+    # Obtenez le premier jour du mois en cours
+    date = datetime.now()
 
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year, date_modification__month=month
+    if filter_by == "Days":
+        # Obtenez le dernier jour du mois en cours
+        start_of_month = datetime(year=year, month=month, day=1).replace(day=1)
+        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
+        end_of_month = start_of_month.replace(day=end_of_month[1])
+        creation_days = (
+            InventoryInto.objects.filter(
+                date_modification__range=(start_of_month, end_of_month)
+            )
+            .annotate(
+                day=ExtractDay("date_modification"),
+            )
+            .values("day")
+            .order_by("day")
+            .distinct()
         )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("quantity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
+        print(creation_days)
+        serializer = CalendreDaysListSerializer(creation_days, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
 
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully",
+        }
+    elif filter_by == "Week":
+        # Obtenez le dernier jour du mois en cours
+        start_of_month = datetime(year, month).replace(day=1)
+        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
+        end_of_month = start_of_month.replace(day=end_of_month[1])
+        creation_days = (
+            InventoryInto.objects.filter(
+                date_modification__range=(start_of_month, end_of_month)
+            )
+            .annotate(
+                week=ExtractWeek("date_modification"),
+            )
+            .values("week")
+            .order_by("week")
+            .distinct()
+        )
+        print(creation_days)
+        serializer = CalendreweekListSerializer(creation_days, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully",
+        }
     return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Ces vues retournes les nombre des differentes entrées chronologiquement et par article
-#
-#
-#
-#
-#
-#
-
 
 @api_view(["GET"])
-def Statistique_total_stock_int_retrieve_month_article(request, year, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year, id_article__designation=article
+def Statistique_calendre_retrieve_year_and_month(request, filter_by, year):
+    if filter_by == "Years":
+        total_articles = (
+            InventoryInto.objects.all()
+            .annotate(year=ExtractYear("date_modification"))
+            .values("year")
+            .order_by("year")
+            .distinct()
         )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month")
-        .annotate(total=Sum("quantity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
+        print(total_articles)
+        serializer = CalendreYearListSerializer(total_articles, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
 
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully",
+        }
+    elif filter_by == "Month":
+        total_articles = (
+            InventoryInto.objects.filter(date_modification__year=year)
+            .annotate(
+                month=ExtractMonth("date_modification"),
+            )
+            .values("month")
+            .order_by("month")
+            .distinct()
+        )
+        print(total_articles)
+        serializer = CalendreMonthListSerializer(total_articles, many=True)
+        data = serializer.data
+        total_data = len(serializer.data)
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully",
+        }
     return Response(response_data, status=status.HTTP_200_OK)
 
-
-@api_view(["GET"])
-def Statistique_total_stock_int_retrieve_year_article(request, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(id_article__designation=article)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("quantity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_int_retrieve_day_article(request, year, month, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_article__designation=article,
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("quantity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
 
 
 # Ces vues retournes les nombre des differentes entrées chronologiquement et par catégorie
@@ -237,82 +441,6 @@ def Statistique_total_stock_int_retrieve_day_article(request, year, month, artic
 #
 
 
-@api_view(["GET"])
-def Statistique_total_category_stock_int_retrieve_month(request, year):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    entries = (
-        InventoryInto.objects.filter(date_modification__year=year)
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_article__id_category__name")
-        .annotate(total=Count("id"))
-    )
-
-    # Formater les données dans le format souhaité
-    result = {}
-    print(entries)
-    for entry in entries:
-        category = entry["id_article__id_category__name"]
-        month = entry["month"]
-        total = entry["total"]
-        if category not in result:
-            result[category] = [{"month": month, "total": total}]
-
-        elif category in result:
-            result[category] += [{"month": month, "total": total}]
-            # result[category]['total'] += total
-
-    response_data = {
-        "status": "success",
-        "data": result,
-        "count": len(result),
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_category_stock_int_retrieve_year(request):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    entries = (
-        InventoryInto.objects.all()
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_article__id_category__name")
-        .annotate(total=Sum("quantity"))
-    )
-
-    # Formater les données dans le format souhaité
-    result = {}
-    print(entries)
-    for entry in entries:
-        category = entry["id_article__id_category__name"]
-        year = entry["year"]
-        total = entry["total"]
-        if category not in result:
-            result[category] = [{"year": year, "total": total}]
-
-        elif category in result:
-            result[category] += [{"year": year, "total": total}]
-            # result[category]['total'] += total
-
-    response_data = {
-        "status": "success",
-        "data": result,
-        "count": len(result),
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_category_stock_int_retrieve_day(request, year, month):
 
     # Supposons que vous ayez un modèle Article avec une date de création
     entries = (
@@ -632,7 +760,7 @@ def Statistique_total_stock_int_retrieve_month_article_list(request, year):
                     0
                 ),
                 total_price=Coalesce(
-                    Sum(F('inventoryinto__quantity') * F('inventoryinto__price')), 
+                    Sum(F('inventoryinto__quantity') * F('inventoryinto__price_used_by_entreprise')), 
                     0,
                     output_field=DecimalField()
                 ),capacity_out = Coalesce(
@@ -711,7 +839,7 @@ def Statistique_total_stock_int_retrieve_year_article_list(request):
                     0
                 ),
                 total_price=Coalesce(
-                    Sum(F('inventoryinto__quantity') * F('inventoryinto__price')), 
+                    Sum(F('inventoryinto__quantity') * F('inventoryinto__price_used_by_entreprise')), 
                     0,
                     output_field=DecimalField()
                 ),capacity_out = Coalesce(
@@ -793,7 +921,7 @@ def Statistique_total_stock_int_retrieve_day_article_list(request, year, month):
                     0
                 ),
                 total_price=Coalesce(
-                    Sum(F('inventoryinto__quantity') * F('inventoryinto__price')), 
+                    Sum(F('inventoryinto__quantity') * F('inventoryinto__price_used_by_entreprise')), 
                     0,
                     output_field=DecimalField()
                 ),capacity_out = Coalesce(
@@ -841,276 +969,6 @@ def Statistique_total_stock_int_retrieve_day_article_list(request, year, month):
         return Response(response_data, status=status.HTTP_200_OK)
 
 ##########################################################################
-
-def Statistique_total_category_stock_int_retrieve_day(request, year, month):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    entries = (
-        InventoryInto.objects.filter(
-            date_modification__year=year, date_modification__month=month
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_article__id_category__name")
-        .annotate(total=Count("id"))
-    )
-
-    # Formater les données dans le format souhaité
-    result = {}
-    for entry in entries:
-        category = entry["id_article__id_category__name"]
-        day = entry["day"]
-        total = entry["total"]
-        if category not in result:
-            result[category] = [{"day": day, "total": total}]
-
-        elif category in result:
-            result[category] += [{"day": day, "total": total}]
-            # result[category]['total'] += total
-
-    response_data = {
-        "status": "success",
-        "data": result,
-        "count": len(result),
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_calendre_retrieve_week_and_day(request, filter_by, year, month):
-    # Obtenez le premier jour du mois en cours
-    date = datetime.now()
-
-    if filter_by == "Days":
-        # Obtenez le dernier jour du mois en cours
-        start_of_month = datetime(year=year, month=month, day=1).replace(day=1)
-        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
-        end_of_month = start_of_month.replace(day=end_of_month[1])
-        creation_days = (
-            InventoryInto.objects.filter(
-                date_modification__range=(start_of_month, end_of_month)
-            )
-            .annotate(
-                day=ExtractDay("date_modification"),
-            )
-            .values("day")
-            .order_by("day")
-            .distinct()
-        )
-        print(creation_days)
-        serializer = CalendreDaysListSerializer(creation_days, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    elif filter_by == "Week":
-        # Obtenez le dernier jour du mois en cours
-        start_of_month = datetime(year, month).replace(day=1)
-        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
-        end_of_month = start_of_month.replace(day=end_of_month[1])
-        creation_days = (
-            InventoryInto.objects.filter(
-                date_modification__range=(start_of_month, end_of_month)
-            )
-            .annotate(
-                week=ExtractWeek("date_modification"),
-            )
-            .values("week")
-            .order_by("week")
-            .distinct()
-        )
-        print(creation_days)
-        serializer = CalendreweekListSerializer(creation_days, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_calendre_retrieve_year_and_month(request, filter_by, year):
-    if filter_by == "Years":
-        total_articles = (
-            InventoryInto.objects.all()
-            .annotate(year=ExtractYear("date_modification"))
-            .values("year")
-            .order_by("year")
-            .distinct()
-        )
-        print(total_articles)
-        serializer = CalendreYearListSerializer(total_articles, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    elif filter_by == "Month":
-        total_articles = (
-            InventoryInto.objects.filter(date_modification__year=year)
-            .annotate(
-                month=ExtractMonth("date_modification"),
-            )
-            .values("month")
-            .order_by("month")
-            .distinct()
-        )
-        print(total_articles)
-        serializer = CalendreMonthListSerializer(total_articles, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# ---------------------------------------------------------------- Pour les prix
-# Ces vues retournes les nombre des differentes entrées seulement chronologiquement(Year, Month, Day)
-
-# Grand general
-
-@api_view(["GET"])
-def Statistique_price_general_stock_int_retrieve_month(request, year):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest("id")
-    current_currency = latest_setting.currency
-
-    # Filter the InventoryInto objects by the current currency and the given year
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year,
-            currency_used_by_entreprise=current_currency,  # Assuming InventoryInto has a 'currency' field
-        )
-        .annotate(month=ExtractMonth("date_modification"))
-        .values("month")
-        .annotate(total=Sum("price_used_by_entreprise"))
-        .order_by("month")
-    )
-
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_general_stock_int_retrieve_year(request):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest("id")
-    current_currency = latest_setting.currency
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(currency_used_by_entreprise=current_currency)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("price_used_by_entreprise"))
-        .order_by("year")
-    )
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_general_stock_int_retrieve_day(request, year, month):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest("id")
-    current_currency = latest_setting.currency
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            currency_used_by_entreprise=current_currency,
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("price_used_by_entreprise"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-############################################################################
-# Petit general
-@api_view(["GET"])
-def Statistique_price_stock_int_retrieve_month(request, year):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest("id")
-    current_currency = latest_setting.currency
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=2023, currency_used_by_entreprise=current_currency
-        )
-        .annotate(month=ExtractMonth("date_modification"))
-        .values("month", "id_article__id_category__name")
-        .annotate(total=Sum("price_used_by_entreprise"))
-        .order_by("month")
-    )
-    serializer = ArticlePriceSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
 
 @api_view(["GET"])
 def Statistique_price_stock_int_retrieve_year(request):
@@ -1384,1621 +1242,14 @@ def Statistique_price_stock_int_retrieve_day_category(request, year, month, cate
 
 ################################################################ Pour les littres
 
-# Grand general
-
-
-@api_view(["GET"])
-def Statistique_littre_general_stock_int_retrieve_month(request, year):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(date_modification__year=year,unit=current_capacity)
-        .annotate(month=ExtractMonth("date_modification"))
-        .values("month")
-        .annotate(total=Sum("capacity"))
-        .order_by("month")
-    )
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_general_stock_int_retrieve_year(request):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(unit=current_capacity)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("capacity"))
-        .order_by("year")
-    )
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_general_stock_int_retrieve_day(request, year, month):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year, date_modification__month=month,unit=current_capacity
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("capacity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Petit general
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_month(request, year):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(date_modification__year=year,unit=current_capacity)
-        .annotate(month=ExtractMonth("date_modification"))
-        .values("month", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("month")
-    )
-    serializer = ArticlePriceSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_year(request):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(unit=current_capacity)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("year")
-    )
-    serializer = ArticlePriceSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_day(request, year, month):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year, date_modification__month=month,unit=current_capacity
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticlePriceSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Selon l'article
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_month_article(request, year, article):
-   # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year, id_article__designation=article,unit=current_capacity
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticlePriceSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_year_article(request, article):
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(id_article__designation=article,unit=current_capacity)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticlePriceSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_day_article(request, year, month, article):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_article__designation=article,
-            unit=current_capacity
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticlePriceSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Selon la catégorie
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_month_category(request, year, category):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year, id_article__id_category__name=category,unit=current_capacity
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticlePriceSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_year_category(request, category):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryInto.objects.filter(id_article__id_category__name=category,unit=current_capacity)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticlePriceSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_int_retrieve_day_category(request, year, month, category):
-    # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_capacity = latest_setting.capacity
-    total_articles = (
-        InventoryInto.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_article__id_category__name=category,
-            unit=current_capacity
-            
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_article__id_category__name")
-        .annotate(total=Sum("capacity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticlePriceSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_calendre_retrieve_week_and_day(request, filter_by, year, month):
-    # Obtenez le premier jour du mois en cours
-    date = datetime.now()
-
-    if filter_by == "Days":
-        # Obtenez le dernier jour du mois en cours
-        start_of_month = datetime(year=year, month=month, day=1).replace(day=1)
-        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
-        end_of_month = start_of_month.replace(day=end_of_month[1])
-        creation_days = (
-            InventoryInto.objects.filter(
-                date_modification__range=(start_of_month, end_of_month)
-            )
-            .annotate(
-                day=ExtractDay("date_modification"),
-            )
-            .values("day")
-            .order_by("day")
-            .distinct()
-        )
-        print(creation_days)
-        serializer = CalendreDaysListSerializer(creation_days, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    elif filter_by == "Week":
-        # Obtenez le dernier jour du mois en cours
-        start_of_month = datetime(year, month).replace(day=1)
-        end_of_month = calendar.monthrange(start_of_month.year, start_of_month.month)
-        end_of_month = start_of_month.replace(day=end_of_month[1])
-        creation_days = (
-            InventoryInto.objects.filter(
-                date_modification__range=(start_of_month, end_of_month)
-            )
-            .annotate(
-                week=ExtractWeek("date_modification"),
-            )
-            .values("week")
-            .order_by("week")
-            .distinct()
-        )
-        print(creation_days)
-        serializer = CalendreweekListSerializer(creation_days, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_calendre_retrieve_year_and_month(request, filter_by, year):
-    if filter_by == "Years":
-        total_articles = (
-            InventoryInto.objects.all()
-            .annotate(year=ExtractYear("date_modification"))
-            .values("year")
-            .order_by("year")
-            .distinct()
-        )
-        print(total_articles)
-        serializer = CalendreYearListSerializer(total_articles, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    elif filter_by == "Month":
-        total_articles = (
-            InventoryInto.objects.filter(date_modification__year=year)
-            .annotate(
-                month=ExtractMonth("date_modification"),
-            )
-            .values("month")
-            .order_by("month")
-            .distinct()
-        )
-        print(total_articles)
-        serializer = CalendreMonthListSerializer(total_articles, many=True)
-        data = serializer.data
-        total_data = len(serializer.data)
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully",
-        }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-#############
-
 
 ### Vues des statistiques des differentes sorties
 #
 #
 
 
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_month(request, year):
 
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(date_modification__year=year)
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month")
-        .annotate(total=Sum("quantity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
 
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_year(request):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.all()
-        .annotate(year=ExtractYear("date_modification"))
-        .values("year")
-        .annotate(total=Sum("quantity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_day(request, year, month):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year, date_modification__month=month
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("quantity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Ces vues retournes les nombre des differentes sorties chronologiquement et par article
-#
-#
-#
-#
-#
-#
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_month_article(request, year, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            id_inventory_into__id_article__designation=article,
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month")
-        .annotate(total=Sum("quantity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_year_article(request, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(id_inventory_into__id_article__designation=article)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("quantity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_day_article(request, year, month, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_inventory_into__id_article__designation=article,
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("quantity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_category_stock_out_retrieve_month(request, year):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    entries = (
-        InventoryOut.objects.filter(date_modification__year=year)
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Count("id"))
-    )
-
-    # Formater les données dans le format souhaité
-    result = {}
-    print(entries)
-    for entry in entries:
-        category = entry["id_inventory_into__id_article__id_category__name"]
-        month = entry["month"]
-        total = entry["total"]
-        if category not in result:
-            result[category] = [{"month": month, "total": total}]
-
-        elif category in result:
-            result[category] += [{"month": month, "total": total}]
-            # result[category]['total'] += total
-
-    response_data = {
-        "status": "success",
-        "data": result,
-        "count": len(result),
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_category_stock_out_retrieve_year(request):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    entries = (
-        InventoryOut.objects.all()
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Count("id"))
-    )
-
-    # Formater les données dans le format souhaité
-    result = {}
-    print(entries)
-    for entry in entries:
-        category = entry["id_inventory_into__id_article__id_category__name"]
-        year = entry["year"]
-        total = entry["total"]
-        if category not in result:
-            result[category] = [{"year": year, "total": total}]
-
-        elif category in result:
-            result[category] += [{"year": year, "total": total}]
-            # result[category]['total'] += total
-
-    response_data = {
-        "status": "success",
-        "data": result,
-        "count": len(result),
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_category_stock_out_retrieve_day(request, year, month):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    entries = (
-        InventoryOut.objects.filter(
-            date_modification__year=year, date_modification__month=month
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Count("id"))
-    )
-
-    # Formater les données dans le format souhaité
-    result = {}
-    for entry in entries:
-        category = entry["id_inventory_into__id_article__id_category__name"]
-        day = entry["day"]
-        total = entry["total"]
-        if category not in result:
-            result[category] = [{"day": day, "total": total}]
-
-        elif category in result:
-            result[category] += [{"day": day, "total": total}]
-            # result[category]['total'] += total
-
-    response_data = {
-        "status": "success",
-        "data": result,
-        "count": len(result),
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_month_category(request, year, category):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            id_inventory_into__id_article__id_category__name=category,
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month")
-        .annotate(total=Sum("quantity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_year_category(request, category):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            id_inventory_into__id_article__id_category__name=category
-        )
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("quantity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_total_stock_out_retrieve_day_category(request, year, month, category):
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_inventory_into__id_article__id_category__name=category,
-            
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("quantity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-################################################################ Pour les prix
-
-# Ces vues retournes les nombre des differentes entrées chronologiquement et par catégorie
-#
-#
-#
-#
-#
-#
-
-# Sorties General
-#
-#
-
-
-# Grand general
-@api_view(["GET"])
-def Statistique_price_general_stock_out_retrieve_month(request, year):
- # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency   
-
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(date_modification__year=year,id_inventory_into__currency_used_by_entreprise=current_currency)
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("month")
-    )
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_general_stock_out_retrieve_year(request):
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency
-
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(id_inventory_into__currency_used_by_entreprise=current_currency)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("year")
-    )
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_general_stock_out_retrieve_day(request, year, month):
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency
-
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year, date_modification__month=month,id_inventory_into__currency_used_by_entreprise=current_currency
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("day")
-    )
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Petit general
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_month(request, year):
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency
-
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(date_modification__year=year,id_inventory_into__currency_used_by_entreprise=current_currency)
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("month")
-    )
-    serializer = ArticlePriceOutSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_year(request):
-
-
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.all()
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("year")
-    )
-    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_day(request, year, month):
-
-
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year, date_modification__month=month
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("day")
-    )
-    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Sorties par categories
-#
-#
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_month_category(request, year, category):
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency
-
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            id_inventory_into__id_article__id_category__name=category,
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_year_category(request, category):
-
-
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            id_inventory_into__id_article__id_category__name=category
-        )
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_day_category(request, year, month, category):
-
- # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency   
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_inventory_into__id_article__id_category__name=category,
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Par articles
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_month_article(request, year, article):
-
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            id_inventory_into__id_article__designation=article,
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_year_article(request, article):
-
-# Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(id_inventory_into__id_article__designation=article)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_price_stock_out_retrieve_day_article(request, year, month, article):
- # Retrieve the latest setting to get the current currency
-    latest_setting = Setting.objects.latest('id')
-    current_currency = latest_setting.currency   
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_inventory_into__id_article__designation=article,
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__price_used_by_entreprise"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-################################################################ Pour les littres
-
-
-# Par General
-
-# Par grand géneral
-
-
-@api_view(["GET"])
-def Statistique_littre_general_stock_out_retrieve_month(request, year):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(date_modification__year=year)
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("month")
-    )
-    serializer = ArticleSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_general_stock_out_retrieve_year(request):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.all()
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("year")
-    )
-    serializer = ArticleSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_general_stock_out_retrieve_day(request, year, month):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year, date_modification__month=month
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("day")
-    )
-    serializer = ArticleSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Par petit general
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_month(request, year):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(date_modification__year=year)
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("month")
-    )
-    serializer = ArticlePriceOutSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_year(request):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.all()
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("year")
-    )
-    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_day(request, year, month):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year, date_modification__month=month
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("day")
-    )
-    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Par categorie
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_month_category(request, year, category):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            id_inventory_into__id_article__id_category__name=category,
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_year_category(request, category):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            id_inventory_into__id_article__id_category__name=category
-        )
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_day_category(request, year, month, category):
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_inventory_into__id_article__id_category__name=category,
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-# Par article
-
-
-def Statistique_littre_stock_out_retrieve_month_article(request, year, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            id_inventory_into__id_article__designation=article,
-        )
-        .annotate(
-            month=ExtractMonth("date_modification"),
-        )
-        .values("month", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("month")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializer(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_year_article(request, article):
-
-    # Supposons que vous ayez un modèle Article avec une date de création
-    total_articles = (
-        InventoryOut.objects.filter(id_inventory_into__id_article__designation=article)
-        .annotate(
-            year=ExtractYear("date_modification"),
-        )
-        .values("year", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("year")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerYear(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-def Statistique_littre_stock_out_retrieve_day_article(request, year, month, article):
-    total_articles = (
-        InventoryOut.objects.filter(
-            date_modification__year=year,
-            date_modification__month=month,
-            id_inventory_into__id_article__designation=article,
-        )
-        .annotate(
-            day=ExtractDay("date_modification"),
-        )
-        .values("day", "id_inventory_into__id_article__id_category__name")
-        .annotate(total=Sum("id_inventory_into__capacity"))
-        .order_by("day")
-    )
-    print(total_articles)
-    serializer = ArticlePriceOutSerializerDay(total_articles, many=True)
-    data = serializer.data
-    total_data = len(serializer.data)
-
-    response_data = {
-        "status": "success",
-        "data": data,
-        "count": total_data,
-        "message": "Data retrieved successfully",
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
 
 
 class SettingViewSet(viewsets.ModelViewSet):
@@ -3084,54 +1335,115 @@ class Statistique_maintenance_machine_list_retrieve(APIView):
         # Annotate the queryset with planned and actual counts
         serializer = ""
         queryset = ''
-        period = request.query_params.get('period', 'year')
+        period = request.query_params.get('period', 'years')
+        type = request.query_params.get('type','article')
+        month = request.query_params.get('month')
+        year = request.query_params.get('year')
         print(period)
         period = str(period)
-        if period == 'day':
-            month = request.query_params.get('month')
-            year = request.query_params.get('year')
-            queryset = Machine.objects.filter(date_modification__year=year, date_creation__month=month).annotate(
-            planned=Count('planifiermaintenance'),
-            actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False))
-        ).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+        
+        if period == 'days':
+            if type == 'article':
+                queryset = Machine.objects.values(
+                'categorie__nom' # Grouper par catégorie de machine
+                ).filter(diagnostics__date_modification__year=year, diagnostics__date_modification__month=month).annotate(
+                planned=Count('planifiermaintenance'),
+                actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False)),
+                total=F('planned') + F('actual'),
+                category_machine = F('categorie__nom'),
+                name_machine = F('nom'),
+                type_de_maintenance=F('diagnostics__typeMaintenance'),
+                year=ExtractYear('diagnostics__date_modification'), 
+                month=ExtractMonth('diagnostics__date_modification'), 
+                day=ExtractDay('diagnostics__date_modification')).values('year','month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+            elif type == 'category':
+                queryset = CategorieMachine.objects.filter(machine__diagnostics__date_modification__year=year, 
+                machine__date_creation__month=month).annotate(
+                planned=Count('machine__planifiermaintenance'),
+                actual=Count('machine__diagnostics', filter=Q(machine__diagnostics__isDiagnostic=True, machine__diagnostics__isRepair=False)),
+                total=F('planned') + F('actual'),
+                type_de_maintenance=F('machine__diagnostics__typeMaintenance'),
+                year=ExtractYear('machine__diagnostics__date_modification'), 
+                month=ExtractMonth('machine__diagnostics__date_modification'), 
+                day=ExtractDay('machine__diagnostics__date_modification')).values('year','month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',).order_by('-year')
+
         elif period == 'month':
-            year = request.query_params.get('year')
-            queryset = Machine.objects.filter(date_modification__year=year).annotate(
-            planned=Count('planifiermaintenance'),
-            actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False))
-        ).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
-        elif period == 'year':
-            queryset = Machine.objects.filter().annotate(
-            planned=Count('planifiermaintenance'),
-            actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False))
-        ).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+            if type == 'article':
+                queryset = Machine.objects.filter(diagnostics__date_modification__year=year).annotate(
+                planned=Count('planifiermaintenance'),
+                actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False)),
+                total=F('planned') + F('actual'),
+                category_machine = F('categorie__nom'),
+                name_machine = F('nom'),
+                type_de_maintenance=F('diagnostics__typeMaintenance')
+            ).annotate(year=ExtractYear('diagnostics__date_modification'), month=ExtractMonth('diagnostics__date_modification'), day=ExtractDay('diagnostics__date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+            elif type == 'category':
+                queryset = CategorieMachine.objects.filter(machine__diagnostics__date_modification__year=year).annotate(
+                planned=Count('machine__planifiermaintenance'),
+                actual=Count('machine__diagnostics', filter=Q(machine__diagnostics__isDiagnostic=True, machine__diagnostics__isRepair=False)),
+                total=F('planned') + F('actual'),
+                type_de_maintenance=F('machine__diagnostics__typeMaintenance'),
+                year=ExtractYear('machine__diagnostics__date_modification'), 
+                month=ExtractMonth('machine__diagnostics__date_modification'), 
+                day=ExtractDay('machine__diagnostics__date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',).order_by('-year')
+
+        elif period == 'years':
+            if type == 'article':
+                queryset = Machine.objects.filter().annotate(
+                planned=Count('planifiermaintenance'),
+                actual=Count('diagnostics', filter=Q(diagnostics__isDiagnostic=True, diagnostics__isRepair=False)),
+                total=F('planned') + F('actual'),
+                category_machine = F('categorie__nom'),
+                name_machine = F('nom'),
+                type_de_maintenance=F('diagnostics__typeMaintenance')
+            ).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',"category_machine","name_machine").order_by('-year')
+            elif type == 'category':
+                queryset = CategorieMachine.objects.filter().annotate(
+                planned=Count('machine__planifiermaintenance'),
+                actual=Count('machine__diagnostics', filter=Q(machine__diagnostics__isDiagnostic=True, machine__diagnostics__isRepair=False)),
+                total=F('planned') + F('actual'),
+                type_de_maintenance=F('machine__diagnostics__typeMaintenance'),
+                year=ExtractYear('machine__diagnostics__date_modification'), 
+                month=ExtractMonth('machine__diagnostics__date_modification'), 
+                day=ExtractDay('machine__diagnostics__date_modification')).values(
+                'year', 'month', 'day','nom', 'planned', 'actual',"type_de_maintenance",'total',).order_by('-year')
         else:
             return Response({"error": "Invalid period parameter."}, status=400)
         
-        
-        serializer = MachineStatisticsSerializer(queryset, many=True)
-        return Response(serializer.data)
+        if type == "article":
+            serializer = MachineStatisticsSerializerForArticle(queryset, many=True)
+        elif type == "category":
+            serializer = MachineStatisticsSerializerForCategory(queryset, many=True)
+
+        data = serializer.data
+        response_data = {
+        "status": "success",
+        "data": data,
+        "message": "Data retrieved successfully",
+        }
+        return Response(response_data)
 
 class DiagnosticsStatisticsView(APIView):
     def get(self, request):
         serializer = ""
         queryset = ''
-        period = request.query_params.get('period', 'year')
+        period = request.query_params.get('period', 'years')
+        year = request.query_params.get('year')
         print(period)
         period = str(period)
-        if period == 'day':
+        if period == 'days':
             month = request.query_params.get('month')
-            year = request.query_params.get('year')
-            queryset = Diagnostics.objects.filter(date_modification__year=year, date_creation__month=month,isDiagnostic=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = Diagnostics.objects.filter(date_modification__year=year, date_creation__month=month,isDiagnostic=True).annotate(day=ExtractDay('date_modification')).values('day').annotate(count=Count('id')).order_by('-day')
+            serializer = ValuesbyDaysPeriodSerializer(queryset, many=True)
         elif period == 'month':
-            year = request.query_params.get('year')
-            queryset = Diagnostics.objects.filter(date_modification__year=year,isDiagnostic=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
-        elif period == 'year':
-            queryset = Diagnostics.objects.filter(isDiagnostic=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = Diagnostics.objects.filter(date_modification__year=year,isDiagnostic=True).annotate(month=ExtractMonth('date_modification')).values('month').annotate(count=Count('id')).order_by('-month')
+            serializer = ValuesbyMonthPeriodSerializer(queryset, many=True)
+        elif period == 'years':
+            queryset = Diagnostics.objects.filter(isDiagnostic=True).annotate(year=ExtractYear('date_modification')).values('year').annotate(count=Count('id')).order_by('-year')
+            serializer = ValuesbyYearsPeriodSerializer(queryset, many=True)
         else:
             return Response({"error": "Invalid period parameter."}, status=400)
         
-        serializer = DiagnosticsStatisticsViewSerializer(queryset, many=True)
         data = serializer.data 
         response_data = {
         "status": "success",
@@ -3144,20 +1456,23 @@ class DiagnosticsStatisticsView(APIView):
 
 class PlanifierMaintenanceStatisticsView(APIView):
     def get(self, request):
+        serializer = ""
         period = request.query_params.get('period', 'day')
-        if period == 'day':
+        if period == 'days':
             year = request.query_params.get('year')
             month = request.query_params.get('month')
-            queryset = PlanifierMaintenance.objects.filter(date_modification__year=year, date_creation__month=month).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = PlanifierMaintenance.objects.filter(date_modification__year=year, date_creation__month=month).annotate(day=ExtractDay('date_modification')).values('day').annotate(count=Count('id')).order_by('-day')
+            serializer = ValuesbyDaysPeriodSerializer(queryset, many=True)
         elif period == 'month':
             year = request.query_params.get('year')
-            queryset = PlanifierMaintenance.objects.filter(date_modification__year=year).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
-        elif period == 'year':
-            queryset = PlanifierMaintenance.objects.all().annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = PlanifierMaintenance.objects.filter(date_modification__year=year).annotate(month=ExtractMonth('date_modification')).values('month').annotate(count=Count('id')).order_by('-month')
+            serializer = ValuesbyMonthPeriodSerializer(queryset, many=True)
+        elif period == 'years':
+            queryset = PlanifierMaintenance.objects.all().annotate(year=ExtractYear('date_modification')).values('year').annotate(count=Count('id')).order_by('-year')
+            serializer = ValuesbyYearsPeriodSerializer(queryset, many=True)
         else:
             return Response({"error": "Invalid period parameter."}, status=400)
         
-        serializer = PlanifierMaintenanceSerializer(queryset, many=True)  # Utilisez le sérialiseur adapté au modèle PlanifierMaintenance
         data = serializer.data  
         response_data = {
         "status": "success",
@@ -3167,20 +1482,24 @@ class PlanifierMaintenanceStatisticsView(APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 class RepairStatisticsView(APIView):
     def get(self, request):
-        period = request.query_params.get('period', 'day')
-        if period == 'day':
+        serializer = ""
+        period = request.query_params.get('period', 'days')
+        if period == 'days':
             year = request.query_params.get('year')
             month = request.query_params.get('month')
-            queryset = Diagnostics.objects.filter(date_modification__year=year, date_creation__month=month,isRepair=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = Diagnostics.objects.filter(date_modification__year=year, date_creation__month=month,isRepair=True).annotate(day=ExtractDay('date_modification')).values('day').annotate(count=Count('id')).order_by('-day')
+            serializer = ValuesbyDaysPeriodSerializer(queryset, many=True)  
         elif period == 'month':
             year = request.query_params.get('year')
-            queryset = Diagnostics.objects.filter(date_modification__year=year,isRepair=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
-        elif period == 'year':
-            queryset = Diagnostics.objects.filter(isRepair=True).annotate(year=ExtractYear('date_modification'), month=ExtractMonth('date_modification'), day=ExtractDay('date_modification')).values('year', 'month', 'day').annotate(count=Count('id')).order_by('-year')
+            queryset = Diagnostics.objects.filter(date_modification__year=year,isRepair=True).annotate(month=ExtractMonth('date_modification')).values('month').annotate(count=Count('id')).order_by('-month')
+            serializer = ValuesbyMonthPeriodSerializer(queryset, many=True)  
+        elif period == 'years':
+            queryset = Diagnostics.objects.filter(isRepair=True).annotate(year=ExtractYear('date_modification')).values('year').annotate(count=Count('id')).order_by('-year')
+            serializer = ValuesbyYearsPeriodSerializer(queryset, many=True)  
         else:
             return Response({"error": "Invalid period parameter."}, status=400)
         
-        serializer = RepairSerializer(queryset, many=True)  # Utilisez le sérialiseur adapté au modèle PlanifierMaintenance
+        # Utilisez le sérialiseur adapté au modèle PlanifierMaintenance
         data = serializer.data  
         response_data = {
         "status": "success",

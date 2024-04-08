@@ -133,7 +133,7 @@ class Inventory(models.Model):
     unit = models.CharField(max_length=20,null=True, blank=True)
     capacity = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     weight = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
-    numbres_of_pieces = models.PositiveIntegerField(null=True, blank=True)
+    numbres_of_pieces = models.IntegerField(null=True, blank=True)
     price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     price_used_by_entreprise = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     currency = models.CharField(max_length=20,null=True, blank=True)
@@ -145,6 +145,10 @@ class Inventory(models.Model):
     id_category = models.ForeignKey(CategoryInventory, on_delete=models.SET_NULL, null=True, blank=True)
     image = models.ImageField(upload_to='articles/', null=True, blank=True)
     code_bar = models.CharField(max_length=255, null=True, blank=True)
+
+    byWeight = models.BooleanField(default=False)
+    byCapacity = models.BooleanField(default=False)
+    byNumbreOfpiece = models.BooleanField(default=False)
     
     description = models.TextField(blank=True)
     # date et time pour creat et modified  
@@ -175,11 +179,15 @@ class InventoryInto(models.Model):
     rate = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     currency_used_by_entreprise = models.CharField(max_length=20,null=True, blank=True)
     id_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
+
+    
+
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
     # on verfier si la quantite est plein on met a true
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
 
@@ -195,6 +203,8 @@ class InventoryOut(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     # UserAgent doit etre partout
     isAvailable = models.BooleanField(default=True)
+    description = models.TextField(blank=True) 
+
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -204,7 +214,20 @@ class InventoryOut(models.Model):
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
 
     def __str__(self) -> str:
-        return self.id_inventory_into.id_article.designation + "---" + str(self.date_creation)
+        if self.id_inventory_into:
+            if self.id_inventory_into.id_article:
+                if self.id_inventory_into.id_article.designation: 
+                    return self.id_inventory_into.id_article.designation + "---" + str(self.date_creation)
+                else:
+                    # Return a default value or handle the case when team name is not available
+                    return "No designation available"
+            else : 
+                return "No id_article available"
+        else:
+            return "No id inventory_into available"
+
+
+        
     
 
 class PlanifierRepair(models.Model):
@@ -305,7 +328,7 @@ class RemindRepair(models.Model):
 
     
 def generate_work_order():
-    return ''.join(random.choices(string.digits, k=6))
+    return ''.join(random.choices(string.digits, k=9))
 
 
 # Ce modèle représente une catégorie de panne
@@ -345,7 +368,7 @@ class CodePanne(models.Model):
         return self.code + " - " + self.description
 
 class WorkOrder(models.Model):
-    work_order = models.CharField(max_length=6, default=generate_work_order, primary_key=True)
+    work_order = models.CharField(max_length=20, default=generate_work_order, primary_key=True)
     id_machine = models.ForeignKey(Machine, on_delete=models.SET_NULL, null=True)
     id_inventaire = models.ForeignKey(Inventory, on_delete=models.SET_NULL, null=True, blank=True)
     id_code_panne = models.ManyToManyField(CodePanne)
@@ -364,7 +387,7 @@ class Diagnostics(models.Model):
         ('basse', 'Basse'),
     ]
     # Ce champ contient la clé étrangère vers le work order associé au diagnostic
-    id_work_order = models.ForeignKey(WorkOrder, on_delete=models.SET_NULL, null=True)
+    id_work_order = models.ForeignKey(WorkOrder, on_delete=models.CASCADE)
     # Ce champ contient la clé étrangère vers la machine diagnostiquée
     id_machine = models.ForeignKey(Machine, on_delete=models.SET_NULL, null=True)
     # Ce champ contient le roster du diagnostic
@@ -439,9 +462,16 @@ class Diagnostics(models.Model):
 class TrackingPieces(models.Model):
     # Ce champ contient le nom de la catégorie
     id_machine = models.ForeignKey('Machine', on_delete=models.SET_NULL, null=True)
-    id_inventory_out = models.ManyToManyField(InventoryOut)
-    id_work_order = models.ForeignKey(WorkOrder, on_delete=models.SET_NULL, null=True)
-    
+    id_inventory_out = models.ForeignKey(InventoryOut, on_delete=models.SET_NULL, null=True)
+    id_work_order = models.ForeignKey(WorkOrder, on_delete=models.CASCADE)
+
+    capacity = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    weight = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
+    numbres_of_pieces = models.IntegerField(null=True, blank=True) #nombre des pieces aussi
+    description = models.TextField(blank=True) 
+    quantity_used =  models.IntegerField(null=True, blank=True)
+    quantity_total =  models.IntegerField(null=True, blank=True)
+    unit = models.CharField(max_length=100,null=True, blank=True)
      # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
@@ -449,7 +479,7 @@ class TrackingPieces(models.Model):
     time_modified = models.TimeField(auto_now=True)
 
     def __str__(self):
-        return self.id_machine
+        return self.id_machine.nom
 
 
 

@@ -9,6 +9,7 @@ class Team(models.Model):
     TYPE = (
         ('MAINTENANCE', 'MAINTENANCE'),
         ('INVENTAIRE', 'INVENTAIRE'),
+        ('CONTROLEUR', 'CONTROLEUR'),
         ('OTHERS', 'OTHERS'),
         # Add all the other currencies here
     )
@@ -39,7 +40,7 @@ class Agent(models.Model):
     email = models.EmailField(null=True, blank=True,unique=True)
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
-    numero = models.IntegerField( null=True, blank=True)
+    numero = models.IntegerField(null=True, blank=True)
     quarter = models.CharField(max_length=150 , null=True, blank=True)
     commune = models.CharField(max_length=150 , null=True, blank=True)
     ville = models.CharField(max_length=50 , null=True, blank=True)
@@ -69,19 +70,19 @@ class User(AbstractUser):
         ('ADMIN', 'ADMIN'),
         ('INVENTORY', 'INVENTORY'),
         ('MAINTENANCE', 'MAINTENANCE'),
+        ('CONTROLEUR', 'CONTROLEUR'),
         # Add all the other currencies here
     )
   # Pas besoin de définir le champ username
   email = models.EmailField('email address', unique = True)
   poste = models.CharField(max_length = 50, blank = True, null = True)
-  profil = models.CharField(max_length=20, choices=PROFIL)
+  profil = models.CharField(max_length=20, choices=PROFIL, blank = True, null = True)
   agent = models.OneToOneField(Agent, on_delete=models.CASCADE,blank = True, null = True)
 
   USERNAME_FIELD = 'username'
-  REQUIRED_FIELDS = ['password']
+  REQUIRED_FIELDS = ['password'] 
   def __str__(self):
       return "{} - {}".format(self.username,self.email)
-
 
   groups = models.ManyToManyField(
         Group,

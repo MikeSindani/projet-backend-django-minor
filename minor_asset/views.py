@@ -104,8 +104,8 @@ class MachineViewSet(viewsets.ModelViewSet):
     serializer_class_post = MachineSerializerTwo
     serializer_class_put = MachineSerializerTwo
 
-    filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_class = MachineFilter # Remplacez 'nom' par le nom de votre champ
+    #filter_backends = [DjangoFilterBackend, SearchFilter]
+    #filterset_class = MachineFilter # Remplacez 'nom' par le nom de votre champ
     # a ajouter manuelement partout
     #pagination_class = CustomPagination
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
@@ -604,8 +604,8 @@ class AgentViewSet(viewsets.ModelViewSet):
     #pagination_class = CustomPagination
     serializer_class_post = AgentSerializerTwo
     serializer_class_put = AgentSerializerTwo
-    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    #authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    #permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -677,20 +677,22 @@ class AgentViewSet(viewsets.ModelViewSet):
 
 class RegisterAPI(APIView):
     def post(self, request):
+        print("+"*100)
         print(request.data)
         username = request.data.get("username")
         password = request.data.get("password")
         password2 = request.data.get("password2")
         firstname = request.data.get("prenom")
         lastname = request.data.get("nom")
-        poste = "asset"
+        poste = request.data.get("poste")
+        profil = request.data.get("profil")
 
         if User.objects.filter(username=username).exists():
             return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if password != password2:
-            return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
-        user = User.objects.create(username=username, password=make_password(password), first_name=firstname, last_name=lastname,poste=poste)
+        #if password != password2:
+            #return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
+        User.objects.create(username=username, password=password, first_name=firstname, last_name=lastname,poste=poste,profil=profil)
         return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
 
 
@@ -699,8 +701,8 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
     serializer_class = InventoryOutSerializer
     serializer_class_post = InventoryOutSerializerTwo
     serializer_class_put = InventoryOutSerializerTwo
-    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    #authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    #permission_classes = [permissions.IsAuthenticated]
 
 
     def get_serializer_class(self):
@@ -1055,7 +1057,7 @@ class DiagnosticsViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
-        total_data = Provider.objects.all().count()  # Get the total number of data
+        total_data = Diagnostics.objects.all().count()  # Get the total number of data
 
         response_data = {
             "status": "success",
@@ -1180,7 +1182,6 @@ class TrackingPiecesViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
-                print(type(request.data))
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
                     serializer.save()#id_UserAgent=request.user)
@@ -1845,16 +1846,20 @@ def team_retrieve(request, team):
 @api_view(['GET'])
 def TrackingPieces_retrieve(request, work_order):
     pieces = get_list_or_404(TrackingPieces, id_work_order=work_order)
-    serializer = TrackingPiecesSerializerforDetails(pieces, many=True)
+    serializer = TrackingPiecesSerializerforDetails(pieces,many=True)
     total_data = len(serializer.data)
-    data = []
+    '''data = []
     data_list = []
     for i in range(0, total_data):
-       data_list.append(serializer.data[i]['id_inventory_out'])
+           data_list.append(serializer.data[i]['id_inventory_out'])
+           data.append(serializer.data[i]['id_inventory_out'])
     for i in data_list:
        if not i:
           continue
-       data.append(i[0])
+    data.append(i[0])'''
+    
+    data = serializer.data
+    print(data)
 
     response_data = {
         "status": "success",
@@ -1948,8 +1953,38 @@ def Inventory_list(request):
     }
     return Response(response_data, status=status.HTTP_200_OK)
 
+class UserAPIView(APIView):
+    #permission_classes = [permissions.IsAuthenticated]
+    #authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    serializer = ""
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(agent=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserSerializer(user)
+        data = serializer.data
+        response_data = {
+            "status": "success",
+            "data": data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
-
-
-
+@api_view(["GET"])
+def code_panne_get_list_for_machine_retrieve(request):
+    id_WO = request.query_params.get("wo")
+    data_WO = WorkOrder.objects.filter(work_order=id_WO)
+    serializer = CodePanneDetailsSerializer(data_WO)
+    data = serializer.data
+    total_data = len(data)
+    response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "mike":"mike",
+            "message": "Data retrieved successfully",
+        }
+    return Response(response_data, status=status.HTTP_200_OK)

@@ -15,19 +15,26 @@ class OneConsumer(AsyncWebsocketConsumer):
             self.send(json.dumps({"message":"mike"}))
             time.sleep(2)
 
+
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.channel_layer.group_add("Notification", self.channel_name)
         await self.accept()
-        available_inventory = await self.get_data_in_database_of_invnetory_into()
-        if available_inventory:
-            #print(available_inventory)
-            print("unavailable realtime")
-            # Wait for a short period before sending the message
-            await asyncio.sleep(1)  # Adjust the sleep duration as needed
-            await self.send(text_data=json.dumps({
-                'message': available_inventory
-            }))
+        
+        # Exécuter get_data_in_database_of_invnetory_into en arrière-plan
+        asyncio.create_task(self.send_available_inventory())
+
+    async def send_available_inventory(self):
+        try:
+            available_inventory = await self.get_data_in_database_of_invnetory_into()
+            if available_inventory:
+                print("unavailable realtime")
+                await asyncio.sleep(1) # Adjust the sleep duration as needed
+                await self.send(text_data=json.dumps({
+                    'message': available_inventory
+                }))
+        except Exception as e:
+            print(f"Error fetching inventory: {e}")
 
     @database_sync_to_async
     def get_data_in_database_of_invnetory_into(self):
@@ -35,11 +42,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         serializer = InventorySerializerForWebSockets(inventory_data, many=True)
         available_inventory = [item for item in serializer.data if item["etat"] == "unavailable"]
         return available_inventory
+
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard("Notification", self.channel_name)# nom du groupe a change 
+        await self.channel_layer.group_discard("Notification", self.channel_name)
         '''await self.send(text_data=json.dumps({
-            'message': 'You are now disconnected.'
+            'message': 'User disconnected'
         }))'''
+
 
     async def receive(self, text_data):
         print(text_data)

@@ -41,7 +41,6 @@ urlpatterns = [
     path('get-list-inventory/',InventoryInto_list),
     path('get-list-article/',Inventory_list),
     path('get-list-inventory-unavailable/',InventoryInto_list_2),
-
     path('get-list-traking-details/<int:work_order>/',TrackingPieces_retrieve),
     path('get-list-code-machine/<int:work_order>/',Code_panne_retrieve),
 
@@ -69,5 +68,7 @@ urlpatterns = [
     path('repair_count_month/', RepairMounthCountView.as_view(), name='repai_count_mounth'),
 
     path('register/', RegisterAPI.as_view(), name='register'),
+    path('user/<int:user_id>/', UserAPIView.as_view(), name='user-detail'),
     path('', include(router.urls)),
+    path('code-panne-list/', code_panne_get_list_for_machine_retrieve, name='code_panne_list'),
 ]
