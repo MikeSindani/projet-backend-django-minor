@@ -24,7 +24,9 @@ class GetUserDetailsView(APIView):
     def get(self, request):
         user = request.user
         userModel = User.objects.get(id=user.id)
-        userAgent = "Admin"  # Default value
+        userAgent = "Admin"
+        user__organisation__name = "Minor"  # Default value
+        user__organisation__id = '1'
         user_agent_type = ""
         user__isChief = False
         # Check if userModel.agent exists before accessing its 'team' attribute
@@ -37,6 +39,11 @@ class GetUserDetailsView(APIView):
                     or userModel.agent.isAssistant == True
                 ):
                     user__isChief = True
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__name = userModel.entreprise.name
+                user__organisation__id = userModel.entreprise.id
+                
 
         return Response(
             {
@@ -50,5 +57,7 @@ class GetUserDetailsView(APIView):
                 "isChief": user__isChief,
                 "type_agent": user_agent_type,
                 "profil": user.profil,
+                "user__organisation__name" : user__organisation__name,
+                "user__organisation__id" : user__organisation__id,
             }
         )

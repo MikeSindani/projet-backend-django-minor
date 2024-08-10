@@ -14,6 +14,9 @@ class CategorieMachine(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
+
     # Une méthode pour afficher le nom de la catégorie
     def __str__(self):
         return self.nom
@@ -33,6 +36,9 @@ class Machine(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
+
     def __str__(self):
         return self.nom
 
@@ -44,6 +50,9 @@ class Adresse(models.Model):
     pays = models.CharField(max_length=50, null=True, blank=True)
     zip_code = models.CharField(max_length=10, null=True, blank=True)
 
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
+
     # Une méthode pour afficher l'adresse sous forme de chaîne de caractères
     def __str__(self):
         return f"{self.rue} {self.numero}, {self.ville}, {self.pays}"
@@ -53,7 +62,7 @@ class Adresse(models.Model):
 class Client(models.Model):
     # Les attributs du modèle
     nom = models.CharField(max_length=250,null=True, blank=True)
-    phone1 = models.CharField(max_length=10,null=True, blank=True,unique=True)
+    phone1 = models.CharField(max_length=10,null=True, blank=True)
     phone2 = models.CharField(max_length=10, blank=True,unique=True)
     email = models.EmailField()
     id_machine = models.ForeignKey("Machine", on_delete=models.SET_NULL, null=True) #asset code 
@@ -72,6 +81,9 @@ class Client(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
+
     # Une méthode pour afficher le nom complet de l'agent
     def __str__(self):
         return f"{self.nom} {self.prenom} {self.postnom}"
@@ -79,10 +91,10 @@ class Client(models.Model):
 
 class Provider(models.Model):
     name = models.CharField(max_length=100)
-    phone1 = models.CharField(max_length=10,unique=True)
-    phone2 = models.CharField(max_length=10, blank=True,unique=True)
-    web_site = models.CharField(max_length=250, blank=True,unique=True)
-    email = models.EmailField(null=True, blank=True,unique=True)
+    phone1 = models.CharField(max_length=10)
+    phone2 = models.CharField(max_length=10, blank=True)
+    web_site = models.CharField(max_length=250, blank=True)
+    email = models.EmailField(null=True, blank=True)
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
     numero = models.IntegerField()
@@ -98,16 +110,23 @@ class Provider(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
+
     def __str__(self):
         return self.name 
 
 class Location(models.Model):
     name = models.CharField(max_length=100,unique=True)
     description = models.TextField(null=True, blank=True)
+
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
     def __str__(self):
         return self.name   
 class CategoryInventory(models.Model):
@@ -119,6 +138,9 @@ class CategoryInventory(models.Model):
     time_created = models.TimeField(auto_now_add=True,null=True)
     date_modification = models.DateTimeField(auto_now=True,null=True)
     time_modified = models.TimeField(auto_now=True,null=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return self.name 
@@ -156,6 +178,9 @@ class Inventory(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True) 
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
     def __str__(self):
         return f"{self.id} - {self.designation}"
 
@@ -168,7 +193,6 @@ class InventoryInto(models.Model):
     capacity = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     weight = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
     numbres_of_pieces = models.IntegerField(null=True, blank=True) #nombre des pieces aussi
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     description = models.TextField(blank=True) 
 
     price = models.DecimalField(max_digits=20, decimal_places=3,null=True, blank=True)
@@ -188,11 +212,23 @@ class InventoryInto(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
+
     # on verfier si la quantite est plein on met a true
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
 
     def __str__(self) -> str:
-        return self.id_article.designation + "---" + str(self.date_creation)
+        if self.id_article :
+                if self.id_article.designation: 
+                   return self.id_article.designation + "---" + str(self.date_creation)
+                else:
+                    # Return a default value or handle the case when team name is not available
+                    return "No designation"
+            
+        else:
+            return "No id article available"
+        
     
     
 class InventoryOut(models.Model):
@@ -200,7 +236,7 @@ class InventoryOut(models.Model):
     id_inventory_into = models.ForeignKey("InventoryInto", on_delete=models.SET_NULL, null=True)
     id_agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True)
     id_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+   
     # UserAgent doit etre partout
     isAvailable = models.BooleanField(default=True)
     description = models.TextField(blank=True) 
@@ -212,6 +248,8 @@ class InventoryOut(models.Model):
     time_modified = models.TimeField(auto_now=True)
     # on verfier si la quantite est plein on met a true
     #isFull  = models.BooleanField(null=True, blank=True,default=False)
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
 
     def __str__(self) -> str:
         if self.id_inventory_into:
@@ -251,6 +289,9 @@ class PlanifierRepair(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
     def __str__(self):
         return self.id_machine.nom
 
@@ -273,6 +314,9 @@ class PlanifierMaintenance(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
     def __str__(self):
         return self.id_machine.nom
 
@@ -287,6 +331,9 @@ class PlanifierTeam(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
     def __str__(self):
         return self.id_team.name
 
@@ -300,6 +347,9 @@ class Remind(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
     def __str__(self):
         return f'{self.id_planifierMaintenance} datetime_remind:{self.datetime_remind}'
     
@@ -308,12 +358,15 @@ class RemindTeam(models.Model):
     datetime_remind = models.DateTimeField(null=True, blank=True)
     day = models.CharField(max_length=100,null=True, blank=True)
     hours = models.CharField(max_length=100,null=True, blank=True)
-
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
 
 class RemindRepair(models.Model):
     id_PlanifierRepair = models.ForeignKey(PlanifierRepair, on_delete=models.SET_NULL, null=True, blank=True)
@@ -325,6 +378,9 @@ class RemindRepair(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
 
     
 def generate_work_order():
@@ -343,6 +399,9 @@ class CategoriePanne(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return self.nom
@@ -378,6 +437,11 @@ class WorkOrder(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
+
+
 
 # Ce modèle représente un diagnostic effectué sur une machine
 class Diagnostics(models.Model):
@@ -457,6 +521,9 @@ class Diagnostics(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
     
 
 class TrackingPieces(models.Model):
@@ -477,6 +544,9 @@ class TrackingPieces(models.Model):
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
+    createdBy = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    entreprise = models.ForeignKey(Organisation, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return self.id_machine.nom

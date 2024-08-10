@@ -354,3 +354,36 @@ class ValuesbyMonthPeriodSerializer(serializers.ModelSerializer):
            'months': number_to_month(instance['month']),
            'value': f"{instance['count']}",
       }
+
+
+class TrackingPiecesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrackingPieces
+        fields = '__all__'
+
+
+class InventorySummarybyCategorySerializer(serializers.Serializer):
+    id_category_name = serializers.CharField(source='id_category__name')
+    available_count = serializers.IntegerField()
+    unavailable_count = serializers.IntegerField()
+    total_quantity_in = serializers.IntegerField()
+    total_quantity_out = serializers.IntegerField()
+    total_price = serializers.DecimalField(max_digits=20, decimal_places=2)
+    capacity = serializers.DecimalField(max_digits=20, decimal_places=3, source='inventoryinto__capacity')
+    weight = serializers.DecimalField(max_digits=20, decimal_places=3, source='inventoryinto__weight')
+    capacity_out = serializers.DecimalField(max_digits=20, decimal_places=3)
+    numbres_of_pieces_out = serializers.IntegerField()
+    numbres_of_pieces = serializers.IntegerField(source='inventoryinto__numbres_of_pieces')
+
+    class Meta:
+        fields = ['id_category_name', 'available_count', 'unavailable_count', 'total_quantity_in', 'total_quantity_out', 'total_price', 'capacity', 'weight', 'capacity_out', 'numbres_of_pieces_out', 'numbres_of_pieces']
+class MachineDataSerializer(serializers.ModelSerializer):
+    planned = serializers.ListField(child=serializers.IntegerField())
+    actual = serializers.ListField(child=serializers.IntegerField())
+    #total = serializers.IntegerField()
+    year = serializers.ListField(child=serializers.IntegerField())
+    nom = serializers.CharField()  # Not an integer, but a string
+
+    class Meta:
+        model = Machine
+        fields = ['nom', 'planned', 'actual', 'year']

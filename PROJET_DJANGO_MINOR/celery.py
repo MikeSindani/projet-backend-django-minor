@@ -21,6 +21,7 @@ def debug_task(self):
 },}'''
 
 
+
 '''@app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
     # Calls test('hello') every 10 seconds.

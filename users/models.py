@@ -4,6 +4,30 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from datetime import date
 from django.contrib.auth.models import Group, Permission
+import uuid 
+
+class Organisation(models.Model):
+    TYPE = (
+        ('MINOR', 'MINOR'),
+        ('MECANIQUE', 'MECANIQUE'),
+        # Add all the other currencies here
+    )
+    id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=True)
+    name = models.CharField(max_length=250)
+    type = models.CharField( max_length=250,choices=TYPE)
+    trial = models.BooleanField()
+    on_paid = models.BooleanField()
+    date_to_paid = models.DateTimeField()
+    data_until_paid = models.DateTimeField()
+    # date et time pour creat et modified 
+    date_creation = models.DateTimeField(auto_now_add=True)
+    time_created = models.TimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    time_modified = models.TimeField(auto_now=True)
+
+    def __str__(self):
+        return f"nom:{self.name} type:{self.type} uuid:{self.id}"
+
 
 class Team(models.Model):
     TYPE = (
@@ -17,11 +41,14 @@ class Team(models.Model):
     team_type = models.CharField(max_length=20, choices=TYPE)
     description = models.TextField(blank=True)
     
+    entreprise = models.ForeignKey("organisation", on_delete=models.SET_NULL, null=True)
+    
     # date et time pour creat et modified 
     date_creation = models.DateTimeField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
+
 
 class Agent(models.Model):
     APPS_USER = (
@@ -48,6 +75,7 @@ class Agent(models.Model):
     zip_code = models.CharField(max_length=10,null=True, blank=True)
     # id de l'equipe 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team')
+    entreprise = models.ForeignKey("organisation", on_delete=models.SET_NULL,null=True)
 
     isSupervisor = models.BooleanField(default=False)
     isAssistant = models.BooleanField(default=False)
@@ -78,6 +106,8 @@ class User(AbstractUser):
   poste = models.CharField(max_length = 50, blank = True, null = True)
   profil = models.CharField(max_length=20, choices=PROFIL, blank = True, null = True)
   agent = models.OneToOneField(Agent, on_delete=models.CASCADE,blank = True, null = True)
+
+  entreprise = models.ForeignKey("organisation", on_delete=models.SET_NULL,null=True)
 
   USERNAME_FIELD = 'username'
   REQUIRED_FIELDS = ['password'] 

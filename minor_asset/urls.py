@@ -71,4 +71,5 @@ urlpatterns = [
     path('user/<int:user_id>/', UserAPIView.as_view(), name='user-detail'),
     path('', include(router.urls)),
     path('code-panne-list/', code_panne_get_list_for_machine_retrieve, name='code_panne_list'),
+
 ]

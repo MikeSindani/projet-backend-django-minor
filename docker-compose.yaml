@@ -20,13 +20,17 @@ services:
      - POSTGRES_USER=postgres
      - POSTGRES_PASSWORD=postgres
    volumes: 
-     - /data/db:/var/lib/postgresql/data
+     - postgres_data:/data/db:/var/lib/postgresql/data
    ports:
       - 5432:5432
    restart: always
 
  redis:
    image: redis
+   expose: 
+     - 6379
+   volumes: 
+     - redis_data:/data
  celery:
    build: .
    command: celery -A PROJET_DJANGO_MINOR worker --loglevel=info
@@ -47,3 +51,4 @@ services:
 
 volumes:
  postgres_data:
+ redis_data:

@@ -9,6 +9,7 @@ from rest_framework.routers import DefaultRouter, SimpleRouter
 
 router = SimpleRouter()
 router.register("settings", SettingViewSet, basename="settings")
+router.register('tracking_piecestest', TrackingPiecesViewSetTest,basename="test")
 
 
 urlpatterns = [
@@ -17,11 +18,12 @@ urlpatterns = [
     path('diagnostics/statistics/', DiagnosticsStatisticsView.as_view(), name='diagnostics-statistics'),
     path('plannedMaintenance/statistics/', PlanifierMaintenanceStatisticsView.as_view(), name='plannedMaintenance-statistics'),
     path('repair/statistics/', RepairStatisticsView.as_view(), name='repair-statistics'),
-    path('diagnostics/statistics/article/machine/', Statistique_maintenance_machine_list_retrieve.as_view(), name='maintenance_machine-statistics'),
-    path('diagnostics/statistics/category/machine/', Statistique_maintenance_machine_list_retrieve.as_view(), name='maintenance_machine-statistics'),
+    path('diagnostics/statistics/list/', Statistique_maintenance_machine_list_retrieve.as_view(), name='maintenance_machine-statistics'),
+    path('stock/statistics/list/', Statistique_stock_list_retrieve.as_view(), name='maintenance_machine-statistics'),
     # for stock graphique generel, price , litre by period day, month , years.
     path("stock/int/statistics/",Statistique_stock_int_retrieve,name="Statistique_stock_int_retrieve" ),
     path("stock/out/statistics/",Statistique_stock_out_retrieve,name="Statistique_stock_out_retrieve" ),
+     path('machine_data/', MachineData, name='machine_data'),
     ############################################################
     # Urls des différents entrées
     #
@@ -40,20 +42,9 @@ urlpatterns = [
     #############################################################################################
     # Par catégories by list 
     path(
-        "get-statistique_stock_int_month_category_list/<int:year>/",
-        Statistique_total_stock_int_retrieve_month_category_list,
-        name="statistique_stock_int_month_category",
-    ),
-    path(
-        "get-statistique_stock_int_year_category_list/",
-        Statistique_total_stock_int_retrieve_year_category_list,
-        name="statistique_stock_int_year_category",
-    ),
-    
-    path(
-        "get-statistique_stock_int_day_category_list/<int:year>/<int:month>/",
-        Statistique_total_stock_int_retrieve_day_category_list,
-        name="statistique_stock_int_day_category",
+        "stock/int/statistique/by_category/list/",
+        Statistique_total_stock_int_retrieve_by_category_list,
+        name="statistique_stock_int_by_category",
     ),
     #############################################################################################
     #############################################################################################

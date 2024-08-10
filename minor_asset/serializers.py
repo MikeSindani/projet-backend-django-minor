@@ -224,16 +224,20 @@ class InventoryOutSerializer(serializers.ModelSerializer):
     id_team = serializers.SerializerMethodField()
     id_agent = serializers.SerializerMethodField()
     byWeight = serializers.BooleanField(default=False, source="id_inventory_into__id_article__by_weight", read_only=True)
-    user = serializers.SerializerMethodField()
+    createdBy = serializers.SerializerMethodField()
     byCapacity = serializers.BooleanField(default=False, source="id_inventory_into__id_article__by_capacity", read_only=True)
     byNumberOfPiece = serializers.BooleanField(default=False, source="id_inventory_into__id_article__by_number", read_only=True)
 
     class Meta:
         model = InventoryOut
-        fields = ["id",'byWeight', 'id_inventory_into', 'id_team', 'id_agent', 'user', 'quantity', 'date_creation', 'time_created', 'date_modification', 'time_modified', 'byCapacity', 'byNumberOfPiece']
+        fields = ["id",'byWeight', 'id_inventory_into', 'id_team', 'id_agent', 'createdBy', 'quantity', 'date_creation', 'time_created', 'date_modification', 'time_modified', 'byCapacity', 'byNumberOfPiece']
 
-    def get_user(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name}"
+    def get_createdBy(self, obj):
+        if obj.createdBy:
+                return f"{obj.createdBy.first_name} {obj.createdBy.last_name}"
+        else:
+            # Return a default value or handle the case when agent details are not available
+            return "No user first_name and last_name"
 
 
     def get_id_agent(self, obj):
@@ -280,7 +284,7 @@ class InventoryOutSerializerTwo(serializers.ModelSerializer):
     )
     id_team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.all())
     id_agent = serializers.PrimaryKeyRelatedField(queryset=Agent.objects.all())
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    createdBy = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     class Meta:
         model = InventoryOut
@@ -291,15 +295,19 @@ class InventoryOutSerializerAvailable(serializers.ModelSerializer):
     id_inventory_into_name = serializers.SerializerMethodField()
     id_team = serializers.SerializerMethodField()
     id_agent = serializers.SerializerMethodField()
-    user = serializers.SerializerMethodField()
+    createdBy = serializers.SerializerMethodField()
     etat = serializers.SerializerMethodField()
 
     class Meta:
         model = InventoryOut
         fields = "__all__"
 
-    def get_user(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name}"
+    def get_createdBy(self, obj):
+        if obj.createdBy:
+                return f"{obj.createdBy.first_name} {obj.createdBy.last_name}"
+        else:
+            # Return a default value or handle the case when agent details are not available
+            return "No user first_name and last_name"
 
     # File "/app/minor_asset/serializers.py"
 
@@ -613,7 +621,7 @@ class PlanifierMaintenanceForWebSockets(serializers.ModelSerializer):
 
     class Meta:
         model = Remind
-        fields = "__all__"
+        exclude = ['entreprise']
 
     def get_titre(self, obj):
         return f"[Now][Maintenance] schedule for maintenace machine named {obj.id_machine.nom} and ID {obj.id_machine.id}"
@@ -799,7 +807,7 @@ class RemindRepairSerializerForWebSockets(serializers.ModelSerializer):
         fields = "__all__"
 
     def get_titre(self, obj):
-        return f"[At {obj.day} Hour][Repair] Callback for repair machine named {obj.id_PlanifierRepair.id_machine.nom} and id{obj.id_PlanifierRepair.id_machine.id}"
+        return f"[Schedule][Repair][At {obj.day} Hour] Callback for repair machine named {obj.id_PlanifierRepair.id_machine.nom} and id{obj.id_PlanifierRepair.id_machine.id}"
 
     def get_description(self, obj):
         return f"This schedule has been scheduled for {obj.id_PlanifierRepair.date_of_taking_action} {obj.id_PlanifierRepair.time_of_taking_action} with a {obj.id_PlanifierRepair.priority} priority"
@@ -1116,18 +1124,18 @@ class InventorySerializerForWebSockets(serializers.ModelSerializer):
 
     class Meta:
         model = InventoryInto
-        fields = "__all__"
+        exclude = ['entreprise']
 
     def get_titre(self, obj):
     # Vérifie si les objets et leurs attributs existent
         if obj and hasattr(obj, 'id_article') and obj.id_article:
             id_article = obj.id_article
             if hasattr(id_article, 'id') and hasattr(id_article, 'designation'):
-                return f"[unavailable][Stock] schedule for stock product ID {id_article.id} and NAME {id_article.designation}"
+                return f"[Warning][Stock][unavailable] schedule for stock product ID:{id_article.id} and NAME: {id_article.designation}"
             else:
-                return "[unavailable][Stock] schedule for stock product - missing attributes"
+                return "[Warning][Stock][unavailable] schedule for stock product - missing attributes"
         else:
-            return "[unavailable][Stock] schedule for stock product - object not found"
+            return "[Warning][Stock][unavailable] schedule for stock product - object not found"
 
 
     def get_description(self, obj):

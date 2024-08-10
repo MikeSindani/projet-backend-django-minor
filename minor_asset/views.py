@@ -21,6 +21,9 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.shortcuts import get_list_or_404
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.pagination import BasePagination
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 User = get_user_model()
 
@@ -31,18 +34,31 @@ User = get_user_model()
     #serializer_class = CategorieMachineSerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.pagination import LimitOffsetPagination
+class CustomPagination(BasePagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    limit_query_param = 'limit'
+    offset_query_param = 'offset'
 
-class CustomPagination(PageNumberPagination):
-    page_size_query_param = 'size'  # items per page
+    def paginate_queryset(self, queryset, request, view=None):
+        offset = self.get_offset(request)
+        limit = self.get_limit(request)
+        return queryset[offset:offset + limit]
+
+    def get_offset(self, request):
+        return int(request.query_params.get(self.offset_query_param, 0))
+
+    def get_limit(self, request):
+        return int(request.query_params.get(self.limit_query_param, self.page_size))
 
     def get_paginated_response(self, data):
-        return Response({
-            'count': self.page.paginator.count,
-            'next': self.get_next_link(),
-            'previous': self.get_previous_link(),
-            'data': data
-        })
-
+        response_data = {
+            "status": "success",
+            "data": data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
 class CategorieMachineViewSet(viewsets.ModelViewSet):
     queryset = CategorieMachine.objects.all()
@@ -53,13 +69,34 @@ class CategorieMachineViewSet(viewsets.ModelViewSet):
     #pagination_class = CustomPagination
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
+        total_data = queryset.count()
 
         response_data = {
             "status": "success",
@@ -72,7 +109,7 @@ class CategorieMachineViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -81,7 +118,7 @@ class CategorieMachineViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -95,7 +132,18 @@ class CategorieMachineViewSet(viewsets.ModelViewSet):
 
 class CategorieMachineCountView(APIView):
     def get(self, request):
-        total_categorieMachine = CategorieMachine.objects.all().count()
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                total_categorieMachine = CategorieMachine.filter(entreprise__id=user__organisation__id)
+        else : 
+           total_categorieMachine = CategorieMachine.all().count()
         return Response({"total": total_categorieMachine })
 class MachineViewSet(viewsets.ModelViewSet):
     queryset = Machine.objects.all()
@@ -107,9 +155,9 @@ class MachineViewSet(viewsets.ModelViewSet):
     #filter_backends = [DjangoFilterBackend, SearchFilter]
     #filterset_class = MachineFilter # Remplacez 'nom' par le nom de votre champ
     # a ajouter manuelement partout
-    #pagination_class = CustomPagination
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -117,13 +165,33 @@ class MachineViewSet(viewsets.ModelViewSet):
         elif self.request.method in ['PUT', 'PATCH']:
             return self.serializer_class_put
         return self.serializer_class
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
+        total_data = queryset.count()
 
         response_data = {
             "status": "success",
@@ -136,7 +204,7 @@ class MachineViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -145,7 +213,7 @@ class MachineViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -171,6 +239,24 @@ class ClientViewSet(viewsets.ModelViewSet):
     '''pagination_class = CustomPagination'''
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
     
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -187,23 +273,27 @@ class ClientViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        total_data = queryset.count()
 
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+    
     def create(self, request, *args, **kwargs):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -212,7 +302,7 @@ class ClientViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -232,6 +322,24 @@ class ProviderViewSet(viewsets.ModelViewSet):
     #pagination_class = CustomPagination
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -250,10 +358,13 @@ class ProviderViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
+        total_data = queryset.count()
 
         response_data = {
             "status": "success",
@@ -266,7 +377,7 @@ class ProviderViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -275,7 +386,7 @@ class ProviderViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -289,7 +400,13 @@ class ProviderViewSet(viewsets.ModelViewSet):
 '''status=status.HTTP_204_NO_CONTENT'''
 class ProviderCountView(APIView):
     def get(self, request):
-        total_provider = Provider.objects.all().count()
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                total_provider = Provider.objects.filter(entreprise__id=user__organisation__id).count()
         return Response({ "count": total_provider})
 '''
 class MacintView(APIView):
@@ -311,6 +428,24 @@ class LocationViewSet(viewsets.ModelViewSet):
     serializer_class = LocationSerializer
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -329,10 +464,13 @@ class LocationViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
+        total_data = queryset.count()
 
         response_data = {
             "status": "success",
@@ -345,7 +483,7 @@ class LocationViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -354,7 +492,7 @@ class LocationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -372,6 +510,24 @@ class CategoryInventoryViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -389,10 +545,13 @@ class CategoryInventoryViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
+        total_data = queryset.count()
 
         response_data = {
             "status": "success",
@@ -406,7 +565,7 @@ class CategoryInventoryViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=request.data)
             print(request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -415,7 +574,7 @@ class CategoryInventoryViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -434,6 +593,24 @@ class InventoryViewSet(viewsets.ModelViewSet):
     serializer_class_put = InventorySerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -459,10 +636,13 @@ class InventoryViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
+        total_data = queryset.count()
 
         response_data = {
             "status": "success",
@@ -476,7 +656,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=request.data)
             print(request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -485,7 +665,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -521,6 +701,24 @@ class InventoryIntoViewSet(viewsets.ModelViewSet):
     serializer_class_put = InventoryIntoSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
 
     def get_serializer_class(self):
@@ -549,13 +747,13 @@ class InventoryIntoViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        
-        print(data)
-        print(type(data))
-        total_data = queryset.count()  # Get the total number of data
+        total_data = queryset.count()
 
         response_data = {
             "status": "success",
@@ -585,7 +783,7 @@ class InventoryIntoViewSet(viewsets.ModelViewSet):
             print(request)
             serializer = self.get_serializer(instance, data=data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -606,6 +804,24 @@ class AgentViewSet(viewsets.ModelViewSet):
     serializer_class_put = AgentSerializerTwo
     #authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     #permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -630,11 +846,14 @@ class AgentViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
-        
+        total_data = queryset.count()
+
         response_data = {
             "status": "success",
             "data": data,
@@ -644,26 +863,48 @@ class AgentViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
-            print(request.data)
-            print(type(request.data))
-            data = request.data
-            data["user"] = request.user.id
-            print(data)
-            serializer = self.get_serializer(data=data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+        data = request.data.copy()  # Créer une copie des données pour éviter les modifications sur l'objet de requête
+        data["user"] = request.user.id
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            instance = serializer.save(entreprise=request.user.entreprise)
+            subject = f'Your pass from {request.user.entreprise} company'
+            template_name = '/templates/email.html'
+            context = {
+                'name': instance.nom,
+                'prenom': instance.prenom
+            }
+            message = render_to_string(template_name, context)
+            from_email = request.user.email
+            recipient_list = [instance.email]
 
+            send_mail(
+                subject=subject,
+                message='',
+                from_email=from_email,
+                recipient_list=recipient_list,
+                html_message=message,
+            )
+
+            return Response({
+                "status": "success",
+                "data": serializer.data,
+                "message": "Agent added successfully and mail sent"
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                "status": "error",
+                "data": serializer.errors,
+                "message": "Data error!"
+            }, status=status.HTTP_400_BAD_REQUEST)
     def update(self, request, *args, **kwargs):
             instance = self.get_object()
             data = request.data
             data["user"] = request.user.id
             serializer = self.get_serializer(instance, data=data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
-                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
+                return Response({"status": "success", "data": serializer.data, "message": "Agent updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -686,13 +927,20 @@ class RegisterAPI(APIView):
         lastname = request.data.get("nom")
         poste = request.data.get("poste")
         profil = request.data.get("profil")
+        #recupere le user 
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation = userModel.entreprise
 
         if User.objects.filter(username=username).exists():
             return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
         #if password != password2:
             #return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
-        User.objects.create(username=username, password=password, first_name=firstname, last_name=lastname,poste=poste,profil=profil)
+        User.objects.create(username=username, password=make_password(password), first_name=firstname, last_name=lastname,poste=poste,profil=profil,entreprise=user__organisation)
         return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
 
 
@@ -703,6 +951,24 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
     serializer_class_put = InventoryOutSerializerTwo
     #authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     #permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("inventory")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
 
     def get_serializer_class(self):
@@ -733,12 +999,14 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-       
-        total_data = queryset.count()  # Get the total number of data
-        
+        total_data = queryset.count()
+
         response_data = {
             "status": "success",
             "data": data,
@@ -751,7 +1019,7 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
             #print(request.data)
             #print(type(request.data))
             data = request.data
-            data["user"] = request.user.id
+            data["createdBy"] = request.user.id
             total_quantity = InventoryOut.objects.filter(id_inventory_into= data["id_inventory_into"] ).aggregate(total=Sum('quantity'))['total']
             if total_quantity is None :
                  total_quantity = 0
@@ -780,7 +1048,7 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
             print(data)
             serializer = self.get_serializer(instance, data=data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -801,6 +1069,24 @@ class TeamViewSet(viewsets.ModelViewSet):
     serializer_class_put = TeamSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def get_serializer_class(self):
         print("chose sterialiser")
@@ -828,11 +1114,14 @@ class TeamViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
-        
+        total_data = queryset.count()
+
         response_data = {
             "status": "success",
             "data": data,
@@ -846,7 +1135,7 @@ class TeamViewSet(viewsets.ModelViewSet):
             print(type(request.data))
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -855,7 +1144,7 @@ class TeamViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -871,6 +1160,7 @@ class CodePanneViewSet(viewsets.ModelViewSet):
     serializer_class = CodePanneSerializer
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -888,11 +1178,14 @@ class CodePanneViewSet(viewsets.ModelViewSet):
         
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
-        
+        total_data = queryset.count()
+
         response_data = {
             "status": "success",
             "data": data,
@@ -906,7 +1199,7 @@ class CodePanneViewSet(viewsets.ModelViewSet):
             print(type(request.data))
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -915,7 +1208,7 @@ class CodePanneViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -930,14 +1223,32 @@ class CodePanneViewSet(viewsets.ModelViewSet):
 class CategoriePanneViewSet(viewsets.ModelViewSet):
     queryset = CategoriePanne.objects.all()
     serializer_class = CategoriePanneSerializer
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
 class WorkOrderViewSet(viewsets.ModelViewSet):
     queryset = WorkOrder.objects.all()
     serializer_class = WorkOrderSerializer
     serializer_class_post = WorkOrderSerializerTwo
     serializer_class_put = WorkOrderSerializerTwo
-    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+    #authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    #permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+    pagination_class = LimitOffsetPagination
 
 
     def get_serializer_class(self):
@@ -949,6 +1260,23 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
             print("chose sterialiser put and patch")
             return self.serializer_class_put
         return self.serializer_class
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -965,26 +1293,29 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        total_data = queryset.count()
 
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
                 print(type(request.data))
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     message = f"Work Order(WO) #{serializer.data['work_order']} added successfully"
                     return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                 else:
@@ -994,7 +1325,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 serializer = self.get_serializer(instance, data=request.data, partial=True)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                 else:
                     return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1008,7 +1339,16 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
 class WorkOrderCurrentCountView(APIView):
     def get(self, request):
         current_date = timezone.now().date()
-        total = WorkOrder.objects.filter(date_creation__icontains=current_date).count() or InventoryOut.objects.filter(date_modification=current_date).count() 
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = WorkOrder.objects.filter(date_creation__icontains=current_date,entreprise__id=user__organisation__id).count() or InventoryOut.objects.filter(date_modification=current_date,entreprise__id=user__organisation__id).count()   
+        else : 
+                total = 0
         return Response({ "count": total,"date":current_date})
         
 class WorkOrderWeekCountView(APIView):
@@ -1019,28 +1359,48 @@ class WorkOrderWeekCountView(APIView):
         start_week = now - timedelta(days=now.weekday())
         # Calculate the end of the week (Sunday)
         end_week = start_week + timedelta(days=6)
-        # Query the database
-        total = WorkOrder.objects.filter(date_creation__range=[start_week, end_week]).count()
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = WorkOrder.objects.filter(date_creation__range=[start_week, end_week],entreprise__id=user__organisation__id).count()
+                    
+        else : 
+                total = 0
+        # Query the databas
         return Response({ "count": total,"date":"this week"})
 
 class WorkOrderMounthCountView(APIView):
     def get(self, request):
-        # Get the current date
-        # Obtenez la date du début du mois en cours
+         # Obtenez la date du début du mois en cours
         start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        # Obtenez le nombre d'éléments pendant le mois en cours
-        total = WorkOrder.objects.filter(date_creation__gte=start_of_month).count()
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = WorkOrder.objects.filter(date_creation__gte=start_of_month,entreprise__id=user__organisation__id).count()
+                    
+        else : 
+                total = 0
+        
         return Response({ "count": total,"date":"this month"})
 
 
 class DiagnosticsViewSet(viewsets.ModelViewSet):
     queryset = Diagnostics.objects.all()
     serializer_class = DiagnosticsSerializer
-   
+    pagination_class = CustomPagination
     serializer_class_post = DiagnosticsSerializerTwo
     serializer_class_put = DiagnosticsSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
 
     def get_serializer_class(self):
@@ -1052,6 +1412,22 @@ class DiagnosticsViewSet(viewsets.ModelViewSet):
             print("chose sterialiser put and patch")
             return self.serializer_class_put
         return self.serializer_class
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1068,24 +1444,25 @@ class DiagnosticsViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset().filter(isRepair=False)  # Add the filter condition here
-        serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
-        total_data = queryset.count()  # Get the total number of data
-
-        response_data = {
+        queryset = self.filter_queryset(self.get_queryset().filter(isRepair=False)) # Appliquer le filtre et la pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+        return Response({
             "status": "success",
-            "data": data,
-            "count": total_data,
+            "data": serializer.data,
+            "count": queryset.count(),
             "message": "Data retrieved successfully"
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
+    
     def create(self, request, *args, **kwargs):
             print(request.data)
             print(type(request.data))
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1094,7 +1471,7 @@ class DiagnosticsViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1108,28 +1485,55 @@ class DiagnosticsViewSet(viewsets.ModelViewSet):
 class DiagnosticsCurrentCountView(APIView):
     def get(self, request):
         current_date = timezone.now().date()
-        total = Diagnostics.objects.filter(date_creation__icontains=current_date).count() or InventoryOut.objects.filter(date_modification=current_date).count() 
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = Diagnostics.objects.filter(date_creation__icontains=current_date,entreprise__id=user__organisation__id).count() or InventoryOut.objects.filter(date_modification=current_date,entreprise__id=user__organisation__id).count()   
+        else : 
+                total = 0
         return Response({ "count": total,"date":current_date})
 
 class DiagnosticsWeekCountView(APIView):
     def get(self, request):
-        # Get the current date
+         # Get the current date
         now = timezone.now()
         # Calculate the start of the week (Monday)
         start_week = now - timedelta(days=now.weekday())
         # Calculate the end of the week (Sunday)
         end_week = start_week + timedelta(days=6)
-        # Query the database
-        total = Diagnostics.objects.filter(date_creation__range=[start_week, end_week]).count()
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = Diagnostics.objects.filter(date_creation__range=[start_week, end_week],entreprise__id=user__organisation__id).count()
+                    
+        else : 
+                total = 0
+        # Query the databas
         return Response({ "count": total,"date":"this week"})
 
 class DiagnosticsMounthCountView(APIView):
     def get(self, request):
-        # Get the current date
-        # Obtenez la date du début du mois en cours
         start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        # Obtenez le nombre d'éléments pendant le mois en cours
-        total = Diagnostics.objects.filter(date_creation__gte=start_of_month).count()
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = Diagnostics.objects.filter(date_creation__gte=start_of_month,entreprise__id=user__organisation__id).count()
+                    
+        else : 
+                total = 0
         return Response({ "count": total,"date":"this month"})
 
 class TrackingPiecesViewSet(viewsets.ModelViewSet):
@@ -1139,6 +1543,7 @@ class TrackingPiecesViewSet(viewsets.ModelViewSet):
     serializer_class_put = WorkOrderSerializerTwo'''
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
 
     '''def get_serializer_class(self):
@@ -1150,6 +1555,23 @@ class TrackingPiecesViewSet(viewsets.ModelViewSet):
             print("chose sterialiser put and patch")
             return self.serializer_class_put
         return self.serializer_class'''
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1166,25 +1588,28 @@ class TrackingPiecesViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        total_data = queryset.count()
 
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     message = f"Data added successfully"
                     return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                 else:
@@ -1194,7 +1619,7 @@ class TrackingPiecesViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 serializer = self.get_serializer(instance, data=request.data, partial=True)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                 else:
                     return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1208,7 +1633,16 @@ class TrackingPiecesViewSet(viewsets.ModelViewSet):
 class PlanifierMaintenanceCurrentCountView(APIView):
     def get(self, request):
         current_date = timezone.now().date()
-        total = PlanifierMaintenance.objects.filter(date_creation__icontains=current_date).count() or InventoryOut.objects.filter(date_modification=current_date).count() 
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = PlanifierMaintenance.objects.filter(date_creation__icontains=current_date,entreprise__id=user__organisation__id).count() or InventoryOut.objects.filter(date_modification=current_date,entreprise__id=user__organisation__id).count()   
+        else : 
+                total = 0
         return Response({ "count": total,"date":current_date})
 
 class PlanifierMaintenanceWeekCountView(APIView):
@@ -1219,17 +1653,38 @@ class PlanifierMaintenanceWeekCountView(APIView):
         start_week = now - timedelta(days=now.weekday())
         # Calculate the end of the week (Sunday)
         end_week = start_week + timedelta(days=6)
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = PlanifierMaintenance.objects.filter(date_creation__range=[start_week, end_week],entreprise__id=user__organisation__id).count()
+                    
+        else : 
+                total = 0
         # Query the database
-        total = PlanifierMaintenance.objects.filter(date_creation__range=[start_week, end_week]).count()
+        
         return Response({ "count": total,"date":"this week"})
 
 class PlanifierMaintenanceMounthCountView(APIView):
     def get(self, request):
-        # Get the current date
-        # Obtenez la date du début du mois en cours
+         # Obtenez la date du début du mois en cours
         start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        # Obtenez le nombre d'éléments pendant le mois en cours
-        total = PlanifierMaintenance.objects.filter(date_creation__gte=start_of_month).count()
+        user = request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    total = PlanifierMaintenance.objects.filter(date_creation__gte=start_of_month,entreprise__id=user__organisation__id).count()
+                    
+        else : 
+                total = 0
+        
         return Response({ "count": total,"date":"this month"})
 
 class PlanifierMaintenanceViewSet(viewsets.ModelViewSet):
@@ -1239,6 +1694,7 @@ class PlanifierMaintenanceViewSet(viewsets.ModelViewSet):
     serializer_class_put = PlanifierMaintenanceSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
 
     def get_serializer_class(self):
@@ -1250,6 +1706,23 @@ class PlanifierMaintenanceViewSet(viewsets.ModelViewSet):
             print("chose sterialiser put and patch")
             return self.serializer_class_put
         return self.serializer_class
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1266,26 +1739,29 @@ class PlanifierMaintenanceViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        total_data = queryset.count()
 
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
                 print(type(request.data))
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     message = f"Data added successfully"
                     return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                 else:
@@ -1295,7 +1771,7 @@ class PlanifierMaintenanceViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 serializer = self.get_serializer(instance, data=request.data, partial=True)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                 else:
                     return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1313,6 +1789,7 @@ class RemindViewSet(viewsets.ModelViewSet):
         serializer_class_put = RemindSerializerTwo
         authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
         permission_classes = [permissions.IsAuthenticated]
+        pagination_class = CustomPagination
 
 
         def get_serializer_class(self):
@@ -1324,6 +1801,21 @@ class RemindViewSet(viewsets.ModelViewSet):
                 print("chose sterialiser put and patch")
                 return self.serializer_class_put
             return self.serializer_class
+        
+        def get_queryset(self):
+            queryset = super().get_queryset()
+            # Récupérer l'utilisateur actuellement connecté
+            user = self.request.user
+            userModel = User.objects.get(id=user.id)
+            user__organisation__id = ''
+            if userModel.entreprise:
+                if userModel.entreprise.id:
+                    user__organisation__id = userModel.entreprise.id
+                    
+                    # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                    return queryset.filter(entreprise__id=user__organisation__id)
+            else : 
+                return queryset.all()
 
         def retrieve(self, request, *args, **kwargs):
             instance = self.get_object()
@@ -1340,26 +1832,29 @@ class RemindViewSet(viewsets.ModelViewSet):
             return Response(response_data, status=status.HTTP_200_OK)
             
         def list(self, request, *args, **kwargs):
-                queryset = self.get_queryset()
+            queryset = self.get_queryset()
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+            else:
                 serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+            total_data = queryset.count()
 
-                data = serializer.data
-                total_data = queryset.count()  # Get the total number of data
-                
-                response_data = {
-                    "status": "success",
-                    "data": data,
-                    "count": total_data,
-                    "message": "Data retrieved successfully"
-                }
-                return Response(response_data, status=status.HTTP_200_OK)
+            response_data = {
+                "status": "success",
+                "data": data,
+                "count": total_data,
+                "message": "Data retrieved successfully"
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
 
         def create(self, request, *args, **kwargs):
                     print(request.data)
                     print(type(request.data))
                     serializer = self.get_serializer(data=request.data)
                     if serializer.is_valid():
-                        serializer.save()#id_UserAgent=request.user)
+                        serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                         message = f"Data added successfully"
                         return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                     else:
@@ -1369,7 +1864,7 @@ class RemindViewSet(viewsets.ModelViewSet):
                     instance = self.get_object()
                     serializer = self.get_serializer(instance, data=request.data, partial=True)
                     if serializer.is_valid():
-                        serializer.save()#id_UserAgent=request.user)
+                        serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                         return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                     else:
                         return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1406,7 +1901,24 @@ class PlanifierRepairViewSet(viewsets.ModelViewSet):
     serializer_class_put = PlanifierRepairSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def get_serializer_class(self):
         print("chose sterialiser")
@@ -1433,25 +1945,29 @@ class PlanifierRepairViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        data = serializer.data
+        total_data = queryset.count()
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
                 print(type(request.data))
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     message = f"Data added successfully"
                     return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                 else:
@@ -1461,7 +1977,7 @@ class PlanifierRepairViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 serializer = self.get_serializer(instance, data=request.data, partial=True)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                 else:
                     return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1478,6 +1994,24 @@ class RemindRepairViewSet(viewsets.ModelViewSet):
     serializer_class = RemindRepairSerializer
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1494,25 +2028,29 @@ class RemindRepairViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        data = serializer.data
+        total_data = queryset.count()
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
                 print(type(request.data))
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     message = f"Data added successfully"
                     return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                 else:
@@ -1522,7 +2060,7 @@ class RemindRepairViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 serializer = self.get_serializer(instance, data=request.data, partial=True)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                 else:
                     return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1587,6 +2125,7 @@ class PlanifierTeamViewSet(viewsets.ModelViewSet):
     serializer_class_put = PlanifierTeamSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
     def get_serializer_class(self):
         print("chose sterialiser")
@@ -1597,6 +2136,23 @@ class PlanifierTeamViewSet(viewsets.ModelViewSet):
             print("chose sterialiser put and patch")
             return self.serializer_class_put
         return self.serializer_class
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1613,25 +2169,29 @@ class PlanifierTeamViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        data = serializer.data
+        total_data = queryset.count()
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
                 print(type(request.data))
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     message = f"Data added successfully"
                     return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                 else:
@@ -1641,7 +2201,7 @@ class PlanifierTeamViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 serializer = self.get_serializer(instance, data=request.data, partial=True)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                 else:
                     return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1658,6 +2218,24 @@ class RemindTeamViewSet(viewsets.ModelViewSet):
     serializer_class = RemindTeamSerializer
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1674,25 +2252,29 @@ class RemindTeamViewSet(viewsets.ModelViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
         
     def list(self, request, *args, **kwargs):
-            queryset = self.get_queryset()
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
             serializer = self.get_serializer(queryset, many=True)
-            data = serializer.data
-            total_data = queryset.count()  # Get the total number of data
-            
-            response_data = {
-                "status": "success",
-                "data": data,
-                "count": total_data,
-                "message": "Data retrieved successfully"
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+        data = serializer.data
+        total_data = queryset.count()
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
                 print(request.data)
                 print(type(request.data))
                 serializer = self.get_serializer(data=request.data)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                     message = f"Data added successfully"
                     return Response({"status": "success", "data": serializer.data, "message": message}, status=status.HTTP_201_CREATED)
                 else:
@@ -1702,7 +2284,7 @@ class RemindTeamViewSet(viewsets.ModelViewSet):
                 instance = self.get_object()
                 serializer = self.get_serializer(instance, data=request.data, partial=True)
                 if serializer.is_valid():
-                    serializer.save()#id_UserAgent=request.user)
+                    serializer.save(createdBy=request.user,entreprise=request.user.entreprise)    
                     return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
                 else:
                     return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1743,6 +2325,7 @@ class RepairViewSet(viewsets.ModelViewSet):
     serializer_class_put = DiagnosticsSerializerTwo
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
 
 
     def get_serializer_class(self):
@@ -1754,6 +2337,23 @@ class RepairViewSet(viewsets.ModelViewSet):
             print("chose sterialiser put and patch")
             return self.serializer_class_put
         return self.serializer_class
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1786,7 +2386,7 @@ class RepairViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()#id_UserAgent=request.user)
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
                 return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
             else:
                 return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1955,6 +2555,7 @@ def Inventory_list(request):
 
 class UserAPIView(APIView):
     #permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
     #authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     serializer = ""
     def get(self, request, user_id):
