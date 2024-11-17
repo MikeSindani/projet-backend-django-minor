@@ -49,6 +49,9 @@ class Team(models.Model):
     date_modification = models.DateTimeField(auto_now=True)
     time_modified = models.TimeField(auto_now=True)
 
+    def __str__(self):
+        return self.name 
+
 
 class Agent(models.Model):
     APPS_USER = (
@@ -67,7 +70,7 @@ class Agent(models.Model):
     email = models.EmailField(null=True, blank=True,unique=True)
     # Les attributs du modèle
     rue = models.CharField(max_length=100,null=True, blank=True)
-    numero = models.IntegerField(null=True, blank=True)
+    numero = models.IntegerField(default=0)
     quarter = models.CharField(max_length=150 , null=True, blank=True)
     commune = models.CharField(max_length=150 , null=True, blank=True)
     ville = models.CharField(max_length=50 , null=True, blank=True)

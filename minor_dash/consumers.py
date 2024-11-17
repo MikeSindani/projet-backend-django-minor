@@ -166,7 +166,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     def get_data_in_database_of_invnetory_into(self, organization_id=None):
         query = InventoryInto.objects.all()
         if organization_id:
-            query = query.filter(entreprise__id=organization_id)
+            query = query.filter(entreprise=organization_id)
         serializer = InventorySerializerForWebSockets(query, many=True)
         available_inventory = [item for item in serializer.data if item["etat"] == "unavailable"]
         return available_inventory
@@ -231,7 +231,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             serializer = RemindRepairSerializerForWebSockets(remind_repair, many=True)
             models_to_send_remind_planned_repair = serializer.data
             #print(models_to_send_remind_planned_repair)
-
             # Send the models to the group
             if models_to_send_remind_planned_repair:
                 print("models to send remind repair")

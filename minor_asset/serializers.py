@@ -148,6 +148,20 @@ class CategoryInventorySerializer(serializers.ModelSerializer):
         model = CategoryInventory
         fields = "__all__"
 
+class CategoryInventorySerializerPostAndPut(serializers.ModelSerializer):
+    id_location = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CategoryInventory
+        fields = "__all__"
+
+    def get_id_location(self, obj):
+        # Check if obj.id_team exists before accessing its name property
+        if obj. id_location:
+            return f"{obj.id_location.name}"
+        else:
+            # Return a default value or handle the case when team name is not available
+            return "No team name available"
 
 class InventorySerializer(serializers.ModelSerializer):
     id_location = serializers.StringRelatedField()
@@ -354,6 +368,7 @@ class TeamSerializer(serializers.ModelSerializer):
     team_supervisor = serializers.SerializerMethodField()
     team_assitance = serializers.SerializerMethodField()
     team_numbres = serializers.SerializerMethodField()
+    
     
 
     class Meta:

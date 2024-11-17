@@ -1499,7 +1499,7 @@ class SettingViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()  # id_UserAgent=request.user)
+            serializer.save(createdBy=request.user,entreprise=request.user.entreprise) # id_UserAgent=request.user)
             return Response(
                 {
                     "status": "success",

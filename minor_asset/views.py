@@ -507,10 +507,19 @@ class LocationViewSet(viewsets.ModelViewSet):
 class CategoryInventoryViewSet(viewsets.ModelViewSet):
     queryset = CategoryInventory.objects.all()
     serializer_class = CategoryInventorySerializer
+    serializer_class_post = CategoryInventorySerializerPostAndPut
+    serializer_class_put = CategoryInventorySerializerPostAndPut
     filter_backends = [DjangoFilterBackend, SearchFilter]
     authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = CustomPagination
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return self.serializer_class_post
+        elif self.request.method in ['PUT', 'PATCH']:
+            return self.serializer_class_put
+        return self.serializer_class
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -866,17 +875,32 @@ class AgentViewSet(viewsets.ModelViewSet):
         data = request.data.copy()  # Créer une copie des données pour éviter les modifications sur l'objet de requête
         data["user"] = request.user.id
         serializer = self.get_serializer(data=data)
+        print("*"*200)
+        print(data['isAssistant'])
+
         if serializer.is_valid():
             instance = serializer.save(entreprise=request.user.entreprise)
             subject = f'Your pass from {request.user.entreprise} company'
-            template_name = '/templates/email.html'
+            template_name = ['templates','email.html']
+            team  = Team.objects.get(pk=data['team'])
+            agent_supervisor = Agent.objects.get(team=team,isSupervisor=True)
+            agent_assitant = Agent.objects.get(team=team,isAssistant=True)
             context = {
-                'name': instance.nom,
-                'prenom': instance.prenom
+                'agent_name': f"{instance.prenom} {instance.nom}",
+                'company_name': instance.entreprise,
+                'team_name': team.name,
+                'team_leader':f"{agent_supervisor.prenom} {agent_supervisor.nom}",
+                'team_deputy':f'{agent_assitant.prenom} {agent_assitant.nom}',
+
+
             }
             message = render_to_string(template_name, context)
             from_email = request.user.email
             recipient_list = [instance.email]
+
+            if data['isAssistant'] or data['isSupervisor']:
+                template_name = ['templates','email.html']
+                
 
             send_mail(
                 subject=subject,
@@ -885,6 +909,8 @@ class AgentViewSet(viewsets.ModelViewSet):
                 recipient_list=recipient_list,
                 html_message=message,
             )
+            
+            
 
             return Response({
                 "status": "success",
@@ -943,7 +969,101 @@ class RegisterAPI(APIView):
         User.objects.create(username=username, password=make_password(password), first_name=firstname, last_name=lastname,poste=poste,profil=profil,entreprise=user__organisation)
         return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
 
+class TeamViewSet(viewsets.ModelViewSet):
 
+    queryset = Team.objects.all()
+    serializer_class = TeamSerializer
+    serializer_class_post = TeamSerializerTwo
+    serializer_class_put = TeamSerializerTwo
+    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Récupérer l'utilisateur actuellement connecté
+        user = self.request.user
+        userModel = User.objects.get(id=user.id)
+        user__organisation__id = ''
+        if userModel.entreprise:
+            if userModel.entreprise.id:
+                user__organisation__id = userModel.entreprise.id
+                print("categorie machine")
+                print(user__organisation__id)
+                
+                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
+                return queryset.filter(entreprise__id=user__organisation__id)
+        else : 
+             return queryset.all()
+
+    def get_serializer_class(self):
+        print("chose sterialiser")
+        if self.request.method == 'POST':
+            print("chose sterialiser post")
+            return self.serializer_class_post
+        elif self.request.method in ['PUT', 'PATCH']:
+            print("chose sterialiser put and patch")
+            return self.serializer_class_put
+        return self.serializer_class
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        total_data = Provider.objects.all().count()  # Get the total number of data
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        total_data = queryset.count()
+
+        response_data = {
+            "status": "success",
+            "data": data,
+            "count": total_data,
+            "message": "Data retrieved successfully"
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+            print(request.data)
+            print(type(request.data))
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(entreprise=request.user.entreprise)
+                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
+                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+            instance = self.get_object()
+            #instance.id_UserAgent= request.user
+            instance.save()
+            instance.delete()
+            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+    
 class InventoryOutViewSet(viewsets.ModelViewSet):
     queryset = InventoryOut.objects.all()
     serializer_class = InventoryOutSerializer
@@ -1061,100 +1181,7 @@ class InventoryOutViewSet(viewsets.ModelViewSet):
             return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 
-class TeamViewSet(viewsets.ModelViewSet):
 
-    queryset = Team.objects.all()
-    serializer_class = TeamSerializer
-    serializer_class_post = TeamSerializerTwo
-    serializer_class_put = TeamSerializerTwo
-    authentication_classes = [authentication.SessionAuthentication,authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        # Récupérer l'utilisateur actuellement connecté
-        user = self.request.user
-        userModel = User.objects.get(id=user.id)
-        user__organisation__id = ''
-        if userModel.entreprise:
-            if userModel.entreprise.id:
-                user__organisation__id = userModel.entreprise.id
-                print("categorie machine")
-                print(user__organisation__id)
-                
-                # Filtrer les posts de blog appartenant à l'utilisateur et à son organisation
-                return queryset.filter(entreprise__id=user__organisation__id)
-        else : 
-             return queryset.all()
-
-    def get_serializer_class(self):
-        print("chose sterialiser")
-        if self.request.method == 'POST':
-            print("chose sterialiser post")
-            return self.serializer_class_post
-        elif self.request.method in ['PUT', 'PATCH']:
-            print("chose sterialiser put and patch")
-            return self.serializer_class_put
-        return self.serializer_class
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        data = serializer.data
-        total_data = Provider.objects.all().count()  # Get the total number of data
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully"
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
-        
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-        else:
-            serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
-        total_data = queryset.count()
-
-        response_data = {
-            "status": "success",
-            "data": data,
-            "count": total_data,
-            "message": "Data retrieved successfully"
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
-
-    def create(self, request, *args, **kwargs):
-            print(request.data)
-            print(type(request.data))
-            serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save(entreprise=request.user.entreprise)
-                return Response({"status": "success", "data": serializer.data, "message": "Data added successfully"}, status=status.HTTP_201_CREATED)
-            else:
-                return Response({"status": "error", "data": serializer.errors, "message": "Data error!"}, status=status.HTTP_400_BAD_REQUEST)
-
-    def update(self, request, *args, **kwargs):
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save(createdBy=request.user,entreprise=request.user.entreprise)
-                return Response({"status": "success", "data": serializer.data, "message": "Data updated successfully"}, status=status.HTTP_200_OK)
-            else:
-                return Response({"status": "error", "data": serializer.errors, "message": "Update error!"}, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, *args, **kwargs):
-            instance = self.get_object()
-            #instance.id_UserAgent= request.user
-            instance.save()
-            instance.delete()
-            return Response({"status": "success", "message": "Data deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 class CodePanneViewSet(viewsets.ModelViewSet):
     queryset = CodePanne.objects.all()
     serializer_class = CodePanneSerializer

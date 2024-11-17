@@ -1,11 +1,21 @@
-<!-- email_template.html -->
 <html>
   <head>
-    <title>{{ subject }}</title>
+    <title>Affectation à une équipe</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   </head>
   <body>
-    <h1>Bonjour {{ name }} {{ prenom }}!</h1>
-    <p>Ceci est un email de test envoyé depuis Django.</p>
-    <p>Vous pouvez personnaliser ce modèle pour ajouter des informations supplémentaires.</p>
+    <div class="max-w-md mx-auto p-4 bg-white rounded-lg shadow-md">
+      <h1 class="text-3xl font-bold mb-4">Bonjour {{ agent_name }}!</h1>
+      <p class="text-lg text-gray-700">Nous sommes ravis de vous informer que vous avez été affecté à l'équipe {{ team_name }} de la société {{ company_name }} qui est une equipe de {{ team_type }}.</p>
+      <p class="text-lg text-gray-700">L'équipe {{ team_name }} est dirigée par {{ team_leader }} et de son adjoint, {{ team_deputy }}.</p>
+      <p class="text-lg text-gray-700">Si vous avez des questions ou des préoccupations, n'hésitez pas à contacter votre chef d'équipe, {{ team_leader }}, ou son adjoint, {{ team_deputy }}.</p>
+      <p class="text-lg text-gray-700">Nous vous souhaitons bonne chance dans votre nouvelle affectation et nous sommes convaincus que vous allez contribuer à la réussite de l'équipe {{ team_name }}!</p>
+      <hr class="my-4">
+      <h1 class="text-3xl font-bold mb-4">Hello {{ agent_name }}!</h1>
+      <p class="text-lg text-gray-700">We are pleased to inform you that you have been assigned to the {{ team_name }} team of {{ company_name }} which is a {{ team_type }} team.</p>
+      <p class="text-lg text-gray-700">The {{ team_name }} team is led by {{ team_leader }} and his deputy, {{ team_deputy }}.</p>
+      <p class="text-lg text-gray-700">If you have any questions or concerns, please do not hesitate to contact your team leader, {{ team_leader }}, or his deputy, {{ team_deputy }}.</p>
+      <p class="text-lg text-gray-700">We wish you good luck in your new assignment and are confident that you will contribute to the success of the {{ team_name }} team!</p>
+    </div>
   </body>
 </html>
