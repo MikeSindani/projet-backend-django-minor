@@ -16,8 +16,7 @@ COPY . /app/
 
 # Exposer les ports
 EXPOSE 8000  # Pour Django
-EXPOSE 6379  # Pour Redis
-EXPOSE 5432  # Pour PostgreSQL (si utilisé)
+
 
 # Lancer Redis en arrière-plan et démarrer Django
 CMD redis-server --daemonize yes && python manage.py runserver 0.0.0.0:8000
