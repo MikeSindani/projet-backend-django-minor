@@ -15,7 +15,7 @@ RUN pip install -r /app/requirements.txt
 COPY . /app/
 
 # Exposer les ports
-EXPOSE 8000  # Pour Django
+EXPOSE 8000 
 
 
 # Lancer Redis en arrière-plan et démarrer Django
